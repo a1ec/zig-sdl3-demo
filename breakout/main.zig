@@ -5,38 +5,26 @@ const c = @import("cimports.zig").c;
 
 const std = @import("std");
 pub const std_options: std.Options = .{ .log_level = .debug };
-
 const sdl_log = std.log.scoped(.sdl);
 const app_log = std.log.scoped(.app);
-
-const sprites = @import("sprites.zig").sprites;
-const sounds = @import("sounds.zig").sounds;
-
-var fully_initialized = false;
 
 const window_w = 640;
 const window_h = 480;
 var window: *c.SDL_Window = undefined;
 var renderer: *c.SDL_Renderer = undefined;
-
 var sprites_texture: *c.SDL_Texture = undefined;
 
 var sounds_spec: c.SDL_AudioSpec = undefined;
 var sounds_data: []u8 = undefined;
-
 var audio_device: c.SDL_AudioDeviceID = undefined;
-
 var audio_streams_buf: [8]*c.SDL_AudioStream = undefined;
 var audio_streams: []*c.SDL_AudioStream = audio_streams_buf[0..0];
 
 var gamepad: ?*c.SDL_Gamepad = undefined;
-
 var phcon: PhysicalControllerState = undefined;
 var prev_phcon: PhysicalControllerState = undefined;
 var vcon: VirtualControllerState = undefined;
 var prev_vcon: VirtualControllerState = undefined;
-
-var best_score: u32 = undefined;
 
 const Timekeeper = @import("timekeeper.zig").Timekeeper;
 var timekeeper: Timekeeper = undefined;
@@ -44,9 +32,14 @@ var timekeeper: Timekeeper = undefined;
 var paddle: Paddle = undefined;
 var ball: Ball = undefined;
 var bricks: std.BoundedArray(Brick, 100) = undefined;
-
+var best_score: u32 = undefined;
 var score: u32 = undefined;
 var score_color: [3]u8 = undefined;
+
+const sprites = @import("sprites.zig").sprites;
+const sounds = @import("sounds.zig").sounds;
+
+var fully_initialized = false;
 
 fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     _ = appstate;
