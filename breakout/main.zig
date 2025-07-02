@@ -1,53 +1,16 @@
 // © 2024 Carl Åstholm
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-const c = @cImport({
-    @cDefine("SDL_DISABLE_OLD_NAMES", {});
-    @cInclude("SDL3/SDL.h");
-    @cInclude("SDL3/SDL_revision.h");
-    @cDefine("SDL_MAIN_HANDLED", {}); // We are providing our own entry point
-    @cInclude("SDL3/SDL_main.h");
-});
+const c = @import("cimports.zig").c;
 
+const std = @import("std");
 pub const std_options: std.Options = .{ .log_level = .debug };
 
 const sdl_log = std.log.scoped(.sdl);
 const app_log = std.log.scoped(.app);
 
-const sprites = struct {
-    const bmp = @embedFile("sprites.bmp");
-
-    // zig fmt: off
-    const brick_2x1_purple: c.SDL_FRect = .{ .x =   1, .y =  1, .w = 64, .h = 32 };
-    const brick_1x1_purple: c.SDL_FRect = .{ .x =  67, .y =  1, .w = 32, .h = 32 };
-    const brick_2x1_red:    c.SDL_FRect = .{ .x = 101, .y =  1, .w = 64, .h = 32 };
-    const brick_1x1_red:    c.SDL_FRect = .{ .x = 167, .y =  1, .w = 32, .h = 32 };
-    const brick_2x1_yellow: c.SDL_FRect = .{ .x =   1, .y = 35, .w = 64, .h = 32 };
-    const brick_1x1_yellow: c.SDL_FRect = .{ .x =  67, .y = 35, .w = 32, .h = 32 };
-    const brick_2x1_green:  c.SDL_FRect = .{ .x = 101, .y = 35, .w = 64, .h = 32 };
-    const brick_1x1_green:  c.SDL_FRect = .{ .x = 167, .y = 35, .w = 32, .h = 32 };
-    const brick_2x1_blue:   c.SDL_FRect = .{ .x =   1, .y = 69, .w = 64, .h = 32 };
-    const brick_1x1_blue:   c.SDL_FRect = .{ .x =  67, .y = 69, .w = 32, .h = 32 };
-    const brick_2x1_gray:   c.SDL_FRect = .{ .x = 101, .y = 69, .w = 64, .h = 32 };
-    const brick_1x1_gray:   c.SDL_FRect = .{ .x = 167, .y = 69, .w = 32, .h = 32 };
-
-    const ball:   c.SDL_FRect = .{ .x =  2, .y = 104, .w =  22, .h = 22 };
-    const paddle: c.SDL_FRect = .{ .x = 27, .y = 103, .w = 104, .h = 24 };
-    // zig fmt: on
-};
-
-const sounds = struct {
-    const wav = @embedFile("sounds.wav");
-
-    // zig fmt: off
-    const hit_wall   = .{      0,  4_886 };
-    const hit_paddle = .{  4_886, 17_165 };
-    const hit_brick  = .{ 17_165, 25_592 };
-    const win        = .{ 25_592, 49_362 };
-    const lose       = .{ 49_362, 64_024 };
-    // zig fmt: on
-};
+const sprites = @import("sprites.zig").sprites;
+const sounds = @import("sounds.zig").sounds;
 
 var fully_initialized = false;
 
