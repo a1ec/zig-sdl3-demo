@@ -62,7 +62,7 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
         sdl_log.debug("SDL runtime revision: {s}", .{revision});
     }
 
-    try errify(c.SDL_SetAppMetadata("Speedbreaker", "0.0.0", "example.zig-examples.breakout"));
+    try errify(c.SDL_SetAppMetadata("Simple Black Window", "0.0.0", "example.zig-examples.breakout"));
 
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO | c.SDL_INIT_AUDIO | c.SDL_INIT_GAMEPAD));
     // We don't need to call 'SDL_Quit()' when using main callbacks.
@@ -80,7 +80,7 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
 
     errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
 
-    try errify(c.SDL_CreateWindowAndRenderer("Speedbreaker", window_w, window_h, 0, @ptrCast(&window), @ptrCast(&renderer)));
+    try errify(c.SDL_CreateWindowAndRenderer("Black Window", window_w, window_h, 0, @ptrCast(&window), @ptrCast(&renderer)));
     errdefer c.SDL_DestroyWindow(window);
     errdefer c.SDL_DestroyRenderer(renderer);
 
@@ -223,7 +223,7 @@ fn resetGame() !void {
     }
 
     score = 0;
-    score_color = .{ 0xff, 0xff, 0xff };
+    score_color = .{ 0xaa, 0xaa, 0xaa };
 }
 
 fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
@@ -523,13 +523,13 @@ fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
 
         try errify(c.SDL_SetRenderScale(renderer, 2, 2));
         {
-            var buf: [12]u8 = undefined;
+            var buf: [32]u8 = undefined;
             var time: f32 = @min(@as(f32, @floatFromInt(score)) / Timekeeper.updates_per_s, 99.999);
             var text = try std.fmt.bufPrintZ(&buf, "TIME {d:0>6.3}", .{time});
             try errify(c.SDL_SetRenderDrawColor(renderer, score_color[0], score_color[1], score_color[2], 0xff));
             try errify(c.SDL_RenderDebugText(renderer, 8, 8, text.ptr));
             time = @min(@as(f32, @floatFromInt(best_score)) / Timekeeper.updates_per_s, 99.999);
-            text = try std.fmt.bufPrintZ(&buf, "BEST {d:0>6.3}", .{time});
+            text = try std.fmt.bufPrintZ(&buf, "BEST {d:0>6.3} FUCK YOU", .{time});
             try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff));
             try errify(c.SDL_RenderDebugText(renderer, window_w / 2 - 8 * 12, 8, text.ptr));
         }

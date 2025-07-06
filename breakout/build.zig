@@ -21,7 +21,8 @@ pub fn build(b: *std.Build) void {
     }
 
     const app_mod = b.createModule(.{
-        .root_source_file = b.path("main.zig"),
+        //.root_source_file = b.path("main.zig"),
+        .root_source_file = b.path("app.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = target.result.os.tag == .emscripten,
