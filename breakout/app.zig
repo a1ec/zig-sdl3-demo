@@ -1,6 +1,6 @@
 const c = @import("cimports.zig").c;
-
 const std = @import("std");
+
 pub const std_options: std.Options = .{ .log_level = .debug };
 const sdl_log = std.log.scoped(.sdl);
 const app_log = std.log.scoped(.app);
@@ -8,20 +8,26 @@ const app_log = std.log.scoped(.app);
 const Timekeeper = @import("timekeeper.zig").Timekeeper;
 var timekeeper: Timekeeper = undefined;
 
-pub const AppState = enum {
-    Menu,
-    Game,
+pub const MenuEvent = enum {
+    Next,
+    Prev,
+    Select,
 };
 
-pub const MenuEvent = enum {
-    MoveNext,
-    MovePrev,
-    Enter,
-};
+pub fn updateMenu(delta: f32) void {
+    menuPosition += delta;
+    menuPosition = @mod(menuPosition, 3);
+    selectionRect.y = menuPosition * textHeight + 1;
+}
 
 const App = struct {
     const Self = @This();
+    const State = enum {
+        Menu,
+        Game,
+    };
 
+    state: State,
     isRunning: bool = false,
     renderer: *c.SDL_Renderer = undefined,
     window: *c.SDL_Window = undefined,
@@ -30,16 +36,35 @@ const App = struct {
 
     pub fn init(window_w: i32, window_h: i32) Self {
         return Self{
+            .state = State.Menu,
             .window_w = window_w,
             .window_h = window_h,
         };
     }
+
+    pub fn handleEvent(self: *Self, event: MenuEvent) void {
+        switch (self.state) {
+            .Menu => switch (event) {
+                .Next => {
+                    updateMenu(1);
+                },
+                .Prev => {
+                    updateMenu(-1);
+                },
+                .Select => {
+                    std.debug.print("Entering.... ", .{}); // handle enter
+                },
+            },
+            else => {},
+        }
+    }
 };
 
-var app = App.init(640, 480);
+var app = App.init(1280, 960);
 
 const textHeight: f32 = 10;
 const textWidth: f32 = 10;
+const linePad: f32 = 2;
 var menuPosition: f32 = 0;
 var selectionRect: c.SDL_FRect = .{
     .x = 0,
@@ -58,13 +83,13 @@ fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
     try errify(c.SDL_RenderFillRect(app.renderer, &selectionRect));
 
     try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
-    try errify(c.SDL_RenderDebugText(app.renderer, 1, 1, "SDL3"));
+    try errify(c.SDL_RenderDebugText(app.renderer, 2, 2, "SDL3"));
 
     try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
-    try errify(c.SDL_RenderDebugText(app.renderer, 1, 10, "How cool"));
+    try errify(c.SDL_RenderDebugText(app.renderer, 2, 12, "How cool"));
 
     try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
-    try errify(c.SDL_RenderDebugText(app.renderer, 1, 20, "Quit"));
+    try errify(c.SDL_RenderDebugText(app.renderer, 2, 22, "Quit"));
 
     try errify(c.SDL_RenderPresent(app.renderer));
 
@@ -79,10 +104,14 @@ fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
     switch (event.type) {
         c.SDL_EVENT_KEY_DOWN => {
             switch (event.key.key) {
-                c.SDLK_S => {
-                    menuPosition += 1;
-                    menuPosition = @mod(menuPosition, 3);
-                    selectionRect.y = menuPosition * textHeight;
+                c.SDLK_S, c.SDLK_D => {
+                    app.handleEvent(MenuEvent.Next);
+                },
+                c.SDLK_A, c.SDLK_W => {
+                    app.handleEvent(MenuEvent.Prev);
+                },
+                c.SDLK_SPACE, c.SDLK_RETURN => {
+                    app.handleEvent(MenuEvent.Select);
                 },
                 else => {},
             }
@@ -115,7 +144,7 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
     try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.window_w, app.window_h, 0, @ptrCast(&app.window), @ptrCast(&app.renderer)));
 
-    try errify(c.SDL_SetRenderScale(app.renderer, 2, 2));
+    try errify(c.SDL_SetRenderScale(app.renderer, 4, 4));
     try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
     try errify(c.SDL_RenderClear(app.renderer));
     return c.SDL_APP_CONTINUE;
