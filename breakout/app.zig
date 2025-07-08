@@ -8,6 +8,17 @@ const app_log = std.log.scoped(.app);
 const Timekeeper = @import("timekeeper.zig").Timekeeper;
 var timekeeper: Timekeeper = undefined;
 
+pub const AppState = enum {
+    Menu,
+    Game,
+};
+
+pub const MenuEvent = enum {
+    MoveNext,
+    MovePrev,
+    Enter,
+};
+
 const App = struct {
     const Self = @This();
 
@@ -27,6 +38,72 @@ const App = struct {
 
 var app = App.init(640, 480);
 
+const textHeight: f32 = 10;
+const textWidth: f32 = 10;
+var menuPosition: f32 = 0;
+var selectionRect: c.SDL_FRect = .{
+    .x = 0,
+    .y = 0,
+    .w = 320,
+    .h = textHeight,
+};
+
+fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
+    _ = appstate;
+    while (timekeeper.consume()) {}
+    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
+    try errify(c.SDL_RenderClear(app.renderer));
+
+    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0xaa, 0x11));
+    try errify(c.SDL_RenderFillRect(app.renderer, &selectionRect));
+
+    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
+    try errify(c.SDL_RenderDebugText(app.renderer, 1, 1, "SDL3"));
+
+    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
+    try errify(c.SDL_RenderDebugText(app.renderer, 1, 10, "How cool"));
+
+    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
+    try errify(c.SDL_RenderDebugText(app.renderer, 1, 20, "Quit"));
+
+    try errify(c.SDL_RenderPresent(app.renderer));
+
+    timekeeper.produce(c.SDL_GetPerformanceCounter());
+
+    return c.SDL_APP_CONTINUE;
+}
+
+fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
+    _ = appstate;
+
+    switch (event.type) {
+        c.SDL_EVENT_KEY_DOWN => {
+            switch (event.key.key) {
+                c.SDLK_S => {
+                    menuPosition += 1;
+                    menuPosition = @mod(menuPosition, 3);
+                    selectionRect.y = menuPosition * textHeight;
+                },
+                else => {},
+            }
+            const keyboard_event = event.key;
+            std.debug.print("Key Down: {s}\n", .{
+                c.SDL_GetKeyName(keyboard_event.key),
+            });
+        },
+        c.SDL_EVENT_KEY_UP => {
+            switch (event.key.key) {
+                c.SDLK_ESCAPE => {
+                    return c.SDL_APP_SUCCESS;
+                },
+                else => {},
+            }
+        },
+        else => {},
+    }
+    return c.SDL_APP_CONTINUE;
+}
+
 fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     _ = appstate;
     _ = argv;
@@ -41,46 +118,6 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     try errify(c.SDL_SetRenderScale(app.renderer, 2, 2));
     try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
     try errify(c.SDL_RenderClear(app.renderer));
-    return c.SDL_APP_CONTINUE;
-}
-
-fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
-    _ = appstate;
-
-    while (timekeeper.consume()) {
-    }
-    
-    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0xaa, 0x77));
-    try errify(c.SDL_RenderClear(app.renderer));
-    
-    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xff, 0xff, 0xff, 0x88));
-    try errify(c.SDL_RenderDebugText(app.renderer, 8, 8, "SDL THE THREE, how cool is it?"));
-
-    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0xaa, 0xaa, 0xaa, 0xff));
-    try errify(c.SDL_RenderDebugText(app.renderer, 64, 32, "1234\n" ** 320));
-
-    try errify(c.SDL_RenderPresent(app.renderer));
-
-    timekeeper.produce(c.SDL_GetPerformanceCounter());
-
-    return c.SDL_APP_CONTINUE;
-}
-
-fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
-    _ = appstate;
-
-    switch (event.type) {
-        c.SDL_EVENT_KEY_DOWN => {
-            const keyboard_event = event.key;
-            std.debug.print("Key Down: {s}\n", .{
-                c.SDL_GetKeyName(keyboard_event.key),
-            });
-        },
-        c.SDL_EVENT_KEY_UP => {
-            if (event.key.key == c.SDLK_ESCAPE) { return c.SDL_APP_SUCCESS;}
-        },
-        else => {},
-    }
     return c.SDL_APP_CONTINUE;
 }
 
