@@ -17,14 +17,14 @@ pub const GameMenu = struct {
     pub const Item = enum(u8) {
         NewGame,
         ResumeGame,
-        Exit,
+        ConfirmExit,
 
         /// Returns the display text for a menu item.
         pub fn label(self: Item) [*c]const u8 {
             return switch (self) {
                 .NewGame => "New Game",
                 .ResumeGame => "Resume Game",
-                .Exit => "Exit",
+                .ConfirmExit => "Exit",
             };
         }
     };

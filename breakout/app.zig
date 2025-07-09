@@ -21,10 +21,28 @@ const textHeight: f32 = 10;
 const textWidth: f32 = 10;
 const linePad: f32 = 2;
 
+pub const AppEvent = enum {
+    ExitCurrentState,
+};
+
 pub const MenuEvent = enum {
     Next,
     Prev,
     Select,
+};
+
+const Game = struct {
+    const Self = @This();
+    const State = enum {
+        Paused,
+        Running,
+    };
+
+    pub fn draw(self: Self, renderer: *c.SDL_Renderer) !void {
+        _ = self;
+        _ = renderer;
+        std.debug.print("g", .{});
+    }
 };
 
 const App = struct {
@@ -32,12 +50,12 @@ const App = struct {
     const State = enum {
         Menu,
         Game,
-        Exit,
+        ConfirmExit,
     };
 
     state: State,
+    game: Game = Game{},
     menu: gamemenu.GameMenu = undefined,
-    //isRunning: bool = false,
     renderer: *c.SDL_Renderer = undefined,
     window: *c.SDL_Window = undefined,
     window_w: i32 = gameScreenBufferWidth * gameScreenScale,
@@ -50,12 +68,56 @@ const App = struct {
         };
     }
 
-    pub fn handleMenuSelect(self: *Self) void {
-        _ = self;
-        std.debug.print("Entering.... ", .{}); // handle enter
+    pub fn exitCurrentState(self: *Self) void {
+        switch (self.state) {
+            State.Game => {
+                self.state = State.Menu;
+            },
+            State.Menu => {
+                self.state = State.ConfirmExit;
+            },
+            State.ConfirmExit => {
+                self.state = State.Menu;
+            },
+        }
     }
 
-    pub fn handleEvent(self: *Self, event: MenuEvent) void {
+    pub fn handleMenuSelect(self: *Self, item: gamemenu.GameMenu.Item) !void {
+        switch (item) {
+            .NewGame => {
+                self.enterGameState();
+            },
+            .ConfirmExit => {
+                std.debug.print("Exiting.... ", .{}); // handle enter
+                try errify(self.exit());
+            },
+            else => {},
+        }
+    }
+
+    fn enterGameState(self: *Self) void {
+        std.debug.print("Entering.... ", .{}); // handle enter
+        self.state = State.Game;
+    }
+
+    fn exit(self: *Self) !c.SDL_AppResult {
+        _ = self;
+        return c.SDL_APP_SUCCESS;
+    }
+
+    pub fn updateGfx(self: *Self) !void {
+        switch (self.state) {
+            State.Menu => {
+                try self.menu.draw(self.renderer);
+            },
+            State.Game => {
+                try self.game.draw(self.renderer);
+            },
+            else => {},
+        }
+    }
+
+    pub fn handleEvent(self: *Self, event: MenuEvent) !void {
         switch (self.state) {
             .Menu => switch (event) {
                 .Next => {
@@ -65,7 +127,7 @@ const App = struct {
                     self.menu.moveSelection(-1);
                 },
                 .Select => {
-                    self.handleMenuSelect();
+                    try self.handleMenuSelect(self.menu.getSelectedItem());
                 },
             },
             else => {},
@@ -79,7 +141,7 @@ fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
     _ = appstate;
     while (timekeeper.consume()) {}
 
-    try app.menu.draw(app.renderer);
+    try app.updateGfx();
     try errify(c.SDL_RenderPresent(app.renderer));
 
     timekeeper.produce(c.SDL_GetPerformanceCounter());
@@ -111,7 +173,7 @@ fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
         c.SDL_EVENT_KEY_UP => {
             switch (event.key.key) {
                 c.SDLK_ESCAPE => {
-                    return c.SDL_APP_SUCCESS;
+                    app.exitCurrentState();
                 },
                 else => {},
             }
@@ -132,8 +194,8 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
     try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.window_w, app.window_h, 0, @ptrCast(&app.window), @ptrCast(&app.renderer)));
 
-    try errify(c.SDL_SetRenderScale(app.renderer, 4, 4));
-    try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
+    try errify(c.SDL_SetRenderScale(app.renderer, gameScreenScale, gameScreenScale));
+    //try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
     try errify(c.SDL_RenderClear(app.renderer));
     return c.SDL_APP_CONTINUE;
 }
