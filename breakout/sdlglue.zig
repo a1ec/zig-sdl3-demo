@@ -5,6 +5,83 @@ pub const std_options: std.Options = .{ .log_level = .debug };
 const sdl_log = std.log.scoped(.sdl);
 const app_log = std.log.scoped(.app);
 
+const Timekeeper = @import("timekeeper.zig").Timekeeper;
+var timekeeper: Timekeeper = undefined;
+var app = @import("app.zig").app;
+
+//BLOCK Main Functions
+fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
+    _ = appstate;
+    while (timekeeper.consume()) {}
+
+    try app.updateGfx();
+    try errify(c.SDL_RenderPresent(app.renderer));
+
+    timekeeper.produce(c.SDL_GetPerformanceCounter());
+    return c.SDL_APP_CONTINUE;
+}
+
+fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
+    _ = appstate;
+
+    app.handleSdlEvent(event);
+    return c.SDL_APP_CONTINUE;
+}
+
+fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
+    _ = appstate;
+    _ = argv;
+
+    timekeeper = .{ .tocks_per_s = c.SDL_GetPerformanceFrequency() };
+
+    errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
+    try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
+    try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
+    try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.window_w, app.window_h, 0, @ptrCast(&app.window), @ptrCast(&app.renderer)));
+
+    try errify(c.SDL_SetRenderScale(app.renderer, gameScreenScale, gameScreenScale));
+    //try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
+    try errify(c.SDL_RenderClear(app.renderer));
+    return c.SDL_APP_CONTINUE;
+}
+
+fn sdlAppQuit(appstate: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
+    _ = appstate;
+
+    _ = result catch |err| if (err == error.SdlError) {
+        sdl_log.err("{s}", .{c.SDL_GetError()});
+    };
+
+    c.SDL_DestroyRenderer(app.renderer);
+    c.SDL_DestroyWindow(app.window);
+}
+
+//BLOCK Main Function
+
+
+
+//BLOCK Callbacks
+pub fn sdlMainC(argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c_int {
+    return c.SDL_EnterAppMainCallbacks(argc, @ptrCast(argv), sdlAppInitC, sdlAppIterateC, sdlAppEventC, sdlAppQuitC);
+}
+
+fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c.SDL_AppResult {
+    return sdlAppInit(appstate.?, @ptrCast(argv.?[0..@intCast(argc)])) catch |err| app_err.store(err);
+}
+
+fn sdlAppIterateC(appstate: ?*anyopaque) callconv(.c) c.SDL_AppResult {
+    return sdlAppIterate(appstate) catch |err| app_err.store(err);
+}
+
+fn sdlAppEventC(appstate: ?*anyopaque, event: ?*c.SDL_Event) callconv(.c) c.SDL_AppResult {
+    return sdlAppEvent(appstate, event.?) catch |err| app_err.store(err);
+}
+
+fn sdlAppQuitC(appstate: ?*anyopaque, result: c.SDL_AppResult) callconv(.c) void {
+    sdlAppQuit(appstate, app_err.load() orelse result);
+}
+// END BLOCK Callbacks
+
 // Converts the return value of an SDL function to an error union.
 pub inline fn errify(value: anytype) error{SdlError}!switch (@typeInfo(@TypeOf(value))) {
     .bool => void,

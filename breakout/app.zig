@@ -1,21 +1,14 @@
 const c = @import("cimports.zig").c;
 const std = @import("std");
-const gamemenu = @import("gamemenu.zig");
+
 const sdlGlue = @import("sdlglue.zig");
 const errify = sdlGlue.errify;
-
-pub const std_options: std.Options = .{ .log_level = .debug };
-const sdl_log = std.log.scoped(.sdl);
-const app_log = std.log.scoped(.app);
-
 var app_err: sdlGlue.ErrorStore = .{};
 
-const Timekeeper = @import("timekeeper.zig").Timekeeper;
-var timekeeper: Timekeeper = undefined;
+const gamemenu = @import("gamemenu.zig");
 
 const gameScreenBufferWidth = 320;
 const gameScreenBufferHeight = 240;
-const gameScreenScale = 3;
 
 const textHeight: f32 = 10;
 const textWidth: f32 = 10;
@@ -58,6 +51,7 @@ const App = struct {
     menu: gamemenu.GameMenu = undefined,
     renderer: *c.SDL_Renderer = undefined,
     window: *c.SDL_Window = undefined,
+    gameScreenScale: u32 = 3,
     window_w: i32 = gameScreenBufferWidth * gameScreenScale,
     window_h: i32 = gameScreenBufferHeight * gameScreenScale,
 
@@ -66,6 +60,38 @@ const App = struct {
             .state = State.Menu,
             .menu = gamemenu.GameMenu{},
         };
+    }
+
+    pub fn handleSdlEvent(self: *Self, event: *c.SDL_Event) void {
+        switch (event.type) {
+            c.SDL_EVENT_KEY_DOWN => {
+                switch (event.key.key) {
+                    c.SDLK_S, c.SDLK_D => {
+                        self.handleEvent(MenuEvent.Next);
+                    },
+                    c.SDLK_A, c.SDLK_W => {
+                        self.handleEvent(MenuEvent.Prev);
+                    },
+                    c.SDLK_SPACE, c.SDLK_RETURN => {
+                        self.handleEvent(MenuEvent.Select);
+                    },
+                    else => {},
+                }
+                const keyboard_event = event.key;
+                std.debug.print("Key Down: {s}\n", .{
+                    c.SDL_GetKeyName(keyboard_event.key),
+                });
+            },
+            c.SDL_EVENT_KEY_UP => {
+                switch (event.key.key) {
+                    c.SDLK_ESCAPE => {
+                        self.exitCurrentState();
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
     }
 
     pub fn exitCurrentState(self: *Self) void {
@@ -135,105 +161,13 @@ const App = struct {
     }
 };
 
-var app = App.init();
+const sdlMainC = sdlGlue.sdlMainC;
 
-fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
-    _ = appstate;
-    while (timekeeper.consume()) {}
-
-    try app.updateGfx();
-    try errify(c.SDL_RenderPresent(app.renderer));
-
-    timekeeper.produce(c.SDL_GetPerformanceCounter());
-    return c.SDL_APP_CONTINUE;
-}
-
-fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
-    _ = appstate;
-
-    switch (event.type) {
-        c.SDL_EVENT_KEY_DOWN => {
-            switch (event.key.key) {
-                c.SDLK_S, c.SDLK_D => {
-                    app.handleEvent(MenuEvent.Next);
-                },
-                c.SDLK_A, c.SDLK_W => {
-                    app.handleEvent(MenuEvent.Prev);
-                },
-                c.SDLK_SPACE, c.SDLK_RETURN => {
-                    app.handleEvent(MenuEvent.Select);
-                },
-                else => {},
-            }
-            const keyboard_event = event.key;
-            std.debug.print("Key Down: {s}\n", .{
-                c.SDL_GetKeyName(keyboard_event.key),
-            });
-        },
-        c.SDL_EVENT_KEY_UP => {
-            switch (event.key.key) {
-                c.SDLK_ESCAPE => {
-                    app.exitCurrentState();
-                },
-                else => {},
-            }
-        },
-        else => {},
-    }
-    return c.SDL_APP_CONTINUE;
-}
-
-fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
-    _ = appstate;
-    _ = argv;
-
-    timekeeper = .{ .tocks_per_s = c.SDL_GetPerformanceFrequency() };
-
-    errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
-    try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
-    try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
-    try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.window_w, app.window_h, 0, @ptrCast(&app.window), @ptrCast(&app.renderer)));
-
-    try errify(c.SDL_SetRenderScale(app.renderer, gameScreenScale, gameScreenScale));
-    //try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
-    try errify(c.SDL_RenderClear(app.renderer));
-    return c.SDL_APP_CONTINUE;
-}
-
-fn sdlAppQuit(appstate: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
-    _ = appstate;
-
-    _ = result catch |err| if (err == error.SdlError) {
-        sdl_log.err("{s}", .{c.SDL_GetError()});
-    };
-
-    c.SDL_DestroyRenderer(app.renderer);
-    c.SDL_DestroyWindow(app.window);
-}
+pub var app = App.init();
 
 pub fn main() !u8 {
     app_err.reset();
     var empty_argv: [0:null]?[*:0]u8 = .{};
     const status: u8 = @truncate(@as(c_uint, @bitCast(c.SDL_RunApp(empty_argv.len, @ptrCast(&empty_argv), sdlMainC, null))));
     return app_err.load() orelse status;
-}
-
-fn sdlMainC(argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c_int {
-    return c.SDL_EnterAppMainCallbacks(argc, @ptrCast(argv), sdlAppInitC, sdlAppIterateC, sdlAppEventC, sdlAppQuitC);
-}
-
-fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c.SDL_AppResult {
-    return sdlAppInit(appstate.?, @ptrCast(argv.?[0..@intCast(argc)])) catch |err| app_err.store(err);
-}
-
-fn sdlAppIterateC(appstate: ?*anyopaque) callconv(.c) c.SDL_AppResult {
-    return sdlAppIterate(appstate) catch |err| app_err.store(err);
-}
-
-fn sdlAppEventC(appstate: ?*anyopaque, event: ?*c.SDL_Event) callconv(.c) c.SDL_AppResult {
-    return sdlAppEvent(appstate, event.?) catch |err| app_err.store(err);
-}
-
-fn sdlAppQuitC(appstate: ?*anyopaque, result: c.SDL_AppResult) callconv(.c) void {
-    sdlAppQuit(appstate, app_err.load() orelse result);
 }
