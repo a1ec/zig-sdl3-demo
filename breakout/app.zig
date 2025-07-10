@@ -7,9 +7,6 @@ var app_err: sdlGlue.ErrorStore = .{};
 
 const gamemenu = @import("gamemenu.zig");
 
-const gameScreenBufferWidth = 320;
-const gameScreenBufferHeight = 240;
-
 const textHeight: f32 = 10;
 const textWidth: f32 = 10;
 const linePad: f32 = 2;
@@ -38,27 +35,41 @@ const Game = struct {
     }
 };
 
+const AppState = enum {
+    Menu,
+    Game,
+    ConfirmExit,
+};
+
 const App = struct {
     const Self = @This();
-    const State = enum {
-        Menu,
-        Game,
-        ConfirmExit,
-    };
+    state: AppState,
+    renderer: *c.SDL_Renderer,
+    window: *c.SDL_Window,
+    gameScreenScale: u16,
+    gameScreenBufferWidth: u16,
+    gameScreenBufferHeight: u16,
+    window_w: i32,
+    window_h: i32,
+    menu: gamemenu.GameMenu,
+    game: Game,
 
-    state: State,
-    game: Game = Game{},
-    menu: gamemenu.GameMenu = undefined,
-    renderer: *c.SDL_Renderer = undefined,
-    window: *c.SDL_Window = undefined,
-    gameScreenScale: u32 = 3,
-    window_w: i32 = gameScreenBufferWidth * gameScreenScale,
-    window_h: i32 = gameScreenBufferHeight * gameScreenScale,
+    pub fn init() App {
+        const scale = 3;
+        const buffer_w = 320;
+        const buffer_h = 240;
 
-    pub fn init() Self {
-        return Self{
-            .state = State.Menu,
+        return App{
+            .state = AppState.Menu,
+            .game = Game{},
             .menu = gamemenu.GameMenu{},
+            .renderer = undefined,
+            .window = undefined,
+            .gameScreenScale = scale,
+            .gameScreenBufferWidth = buffer_w,
+            .gameScreenBufferHeight = buffer_h,
+            .window_w = buffer_w * scale,
+            .window_h = buffer_h * scale,
         };
     }
 
@@ -96,14 +107,14 @@ const App = struct {
 
     pub fn exitCurrentState(self: *Self) void {
         switch (self.state) {
-            State.Game => {
-                self.state = State.Menu;
+            AppState.Game => {
+                self.state = AppState.Menu;
             },
-            State.Menu => {
-                self.state = State.ConfirmExit;
+            AppState.Menu => {
+                self.state = AppState.ConfirmExit;
             },
-            State.ConfirmExit => {
-                self.state = State.Menu;
+            AppState.ConfirmExit => {
+                self.state = AppState.Menu;
             },
         }
     }
@@ -123,7 +134,7 @@ const App = struct {
 
     fn enterGameState(self: *Self) void {
         std.debug.print("Entering.... ", .{}); // handle enter
-        self.state = State.Game;
+        self.state = AppState.Game;
     }
 
     fn exit(self: *Self) !c.SDL_AppResult {
@@ -133,10 +144,10 @@ const App = struct {
 
     pub fn updateGfx(self: *Self) !void {
         switch (self.state) {
-            State.Menu => {
+            AppState.Menu => {
                 try self.menu.draw(self.renderer);
             },
-            State.Game => {
+            AppState.Game => {
                 try self.game.draw(self.renderer);
             },
             else => {},
