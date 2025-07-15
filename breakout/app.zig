@@ -41,14 +41,14 @@ const AppState = enum {
     ConfirmExit,
 };
 
-const App = struct {
+pub const App = struct {
     const Self = @This();
     state: AppState,
     renderer: *c.SDL_Renderer,
     window: *c.SDL_Window,
-    gameScreenScale: u16,
-    gameScreenBufferWidth: u16,
-    gameScreenBufferHeight: u16,
+    gameScreenScale: f32,
+    gameScreenBufferWidth: f32,
+    gameScreenBufferHeight: f32,
     window_w: i32,
     window_h: i32,
     menu: gamemenu.GameMenu,
@@ -73,18 +73,18 @@ const App = struct {
         };
     }
 
-    pub fn handleSdlEvent(self: *Self, event: *c.SDL_Event) void {
+    pub fn handleSdlEvent(self: *Self, event: *c.SDL_Event) !c.SDL_AppResult {
         switch (event.type) {
             c.SDL_EVENT_KEY_DOWN => {
                 switch (event.key.key) {
                     c.SDLK_S, c.SDLK_D => {
-                        self.handleEvent(MenuEvent.Next);
+                        self.handleEvent(MenuEvent.Next) catch unreachable;
                     },
                     c.SDLK_A, c.SDLK_W => {
-                        self.handleEvent(MenuEvent.Prev);
+                        self.handleEvent(MenuEvent.Prev) catch unreachable;
                     },
                     c.SDLK_SPACE, c.SDLK_RETURN => {
-                        self.handleEvent(MenuEvent.Select);
+                        self.handleEvent(MenuEvent.Select) catch unreachable;
                     },
                     else => {},
                 }
@@ -96,13 +96,15 @@ const App = struct {
             c.SDL_EVENT_KEY_UP => {
                 switch (event.key.key) {
                     c.SDLK_ESCAPE => {
-                        self.exitCurrentState();
+                        //self.exitCurrentState();
+                        return c.SDL_APP_SUCCESS;
                     },
                     else => {},
                 }
             },
             else => {},
         }
+        return c.SDL_APP_CONTINUE;
     }
 
     pub fn exitCurrentState(self: *Self) void {
@@ -126,7 +128,7 @@ const App = struct {
             },
             .ConfirmExit => {
                 std.debug.print("Exiting.... ", .{}); // handle enter
-                try errify(self.exit());
+                _ = self.exit() catch unreachable;
             },
             else => {},
         }
@@ -173,8 +175,6 @@ const App = struct {
 };
 
 const sdlMainC = sdlGlue.sdlMainC;
-
-pub var app = App.init();
 
 pub fn main() !u8 {
     app_err.reset();

@@ -36,7 +36,7 @@ pub const GameMenu = struct {
     /// - direction: -1 for up, +1 for down.
     pub fn moveSelection(self: *Self, step: isize) void {
         self.currentIndex += step;
-        self.currentIndex = @mod(self.currentIndex, 3); //self.allItems.len);
+        self.currentIndex = @mod(self.currentIndex, 3); // TODO self.allItems.len);
     }
 
     /// Returns the currently selected menu item enum.

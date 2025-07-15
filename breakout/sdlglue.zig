@@ -7,58 +7,58 @@ const app_log = std.log.scoped(.app);
 
 const Timekeeper = @import("timekeeper.zig").Timekeeper;
 var timekeeper: Timekeeper = undefined;
-var app = @import("app.zig").app;
+const App = @import("app.zig").App;
 
 //BLOCK Main Functions
 fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
-    _ = appstate;
     while (timekeeper.consume()) {}
 
-    try app.updateGfx();
-    try errify(c.SDL_RenderPresent(app.renderer));
+    const appPtr: *App = @alignCast(@ptrCast(appstate.?));
+    try appPtr.updateGfx();
+    try errify(c.SDL_RenderPresent(appPtr.renderer));
 
     timekeeper.produce(c.SDL_GetPerformanceCounter());
     return c.SDL_APP_CONTINUE;
 }
 
 fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
-    _ = appstate;
+    const appPtr: *App = @alignCast(@ptrCast(appstate.?));
 
-    app.handleSdlEvent(event);
-    return c.SDL_APP_CONTINUE;
+    return appPtr.handleSdlEvent(event);
+    //return c.SDL_APP_CONTINUE;
 }
 
 fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
-    _ = appstate;
     _ = argv;
 
+    const app: **App = @ptrCast(appstate);
     timekeeper = .{ .tocks_per_s = c.SDL_GetPerformanceFrequency() };
 
     errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
     try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
-    try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.window_w, app.window_h, 0, @ptrCast(&app.window), @ptrCast(&app.renderer)));
+    try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.*.window_w, app.*.window_h, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
 
-    try errify(c.SDL_SetRenderScale(app.renderer, app.gameScreenScale, app.gameScreenScale));
+    try errify(c.SDL_SetRenderScale(app.*.renderer, app.*.gameScreenScale, app.*.gameScreenScale));
     //try errify(c.SDL_SetRenderDrawColor(app.renderer, 0x00, 0x00, 0x00, 0xff));
-    try errify(c.SDL_RenderClear(app.renderer));
+    try errify(c.SDL_RenderClear(app.*.renderer));
     return c.SDL_APP_CONTINUE;
 }
 
-fn sdlAppQuit(appstate: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
-    _ = appstate;
-
+fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
     _ = result catch |err| if (err == error.SdlError) {
         sdl_log.err("{s}", .{c.SDL_GetError()});
     };
 
-    c.SDL_DestroyRenderer(app.renderer);
-    c.SDL_DestroyWindow(app.window);
+    const appPtr: *App = @alignCast(@ptrCast(appState.?));
+    c.SDL_DestroyRenderer(appPtr.renderer);
+    c.SDL_DestroyWindow(appPtr.window);
+    // run your cleanup
+    // free the heap allocation
+    std.heap.page_allocator.destroy(appPtr);
 }
 
 //BLOCK Main Function
-
-
 
 //BLOCK Callbacks
 pub fn sdlMainC(argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c_int {
@@ -66,6 +66,18 @@ pub fn sdlMainC(argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c_int {
 }
 
 fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c.SDL_AppResult {
+    // 1. Unwrap the pointer‐to‐slot
+    const stateSlot = appstate.?; // *?*anyopaque
+
+    // 2. Build or allocate your App
+    //    Here we use the page_allocator as an example.
+    const allocator = std.heap.page_allocator;
+    const appPtr = allocator.create(App) catch return c.SDL_APP_FAILURE;
+    // initialize with your init fn
+    appPtr.* = App.init();
+
+    // 3. Store it (cast to anyopaque to satisfy the C API)
+    stateSlot.* = @ptrCast(appPtr);
     return sdlAppInit(appstate.?, @ptrCast(argv.?[0..@intCast(argc)])) catch |err| app_err.store(err);
 }
 
