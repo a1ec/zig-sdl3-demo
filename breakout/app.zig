@@ -1,6 +1,8 @@
 const c = @import("cimports.zig").c;
 const std = @import("std");
 
+const print = std.debug.print;
+
 const sdlGlue = @import("sdlglue.zig");
 const errify = sdlGlue.errify;
 var app_err: sdlGlue.ErrorStore = .{};
@@ -89,7 +91,7 @@ pub const App = struct {
                     else => {},
                 }
                 const keyboard_event = event.key;
-                std.debug.print("Key Down: {s}\n", .{
+                print("Key Down: {s}\n", .{
                     c.SDL_GetKeyName(keyboard_event.key),
                 });
             },
