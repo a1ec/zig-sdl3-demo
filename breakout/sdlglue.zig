@@ -24,7 +24,7 @@ fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
 fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
     const appPtr: *App = @alignCast(@ptrCast(appstate.?));
 
-    return appPtr.handleSdlEvent(event);
+    return appPtr.handleStateEvent(appPtr, event);
     //return c.SDL_APP_CONTINUE;
 }
 

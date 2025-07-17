@@ -33,7 +33,7 @@ const Game = struct {
     pub fn draw(self: Self, renderer: *c.SDL_Renderer) !void {
         _ = self;
         _ = renderer;
-        std.debug.print("g", .{});
+        std.debug.print("", .{});
     }
 };
 
@@ -55,11 +55,12 @@ pub const App = struct {
     window_h: i32,
     menu: gamemenu.GameMenu,
     game: Game,
+    handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = App.handleMenuSdlEvent,
 
     pub fn init() App {
-        const scale = 3;
         const buffer_w = 320;
         const buffer_h = 240;
+        const scale = 2;
 
         return App{
             .state = AppState.Menu,
@@ -75,25 +76,34 @@ pub const App = struct {
         };
     }
 
-    pub fn handleSdlEvent(self: *Self, event: *c.SDL_Event) !c.SDL_AppResult {
+    pub fn printStateEventKey(self: *Self, event: *c.SDL_Event) void {
+        print("{any}: {any} {s}\n", .{
+            self.state,
+            event,
+            c.SDL_GetKeyName(event.key.key),
+        });
+    }
+
+    pub fn handleMenuSdlEvent(self: *Self, event: *c.SDL_Event) !c.SDL_AppResult {
         switch (event.type) {
             c.SDL_EVENT_KEY_DOWN => {
                 switch (event.key.key) {
                     c.SDLK_S, c.SDLK_D => {
-                        self.handleEvent(MenuEvent.Next) catch unreachable;
+                        try self.handleEvent(MenuEvent.Next);
                     },
                     c.SDLK_A, c.SDLK_W => {
-                        self.handleEvent(MenuEvent.Prev) catch unreachable;
+                        try self.handleEvent(MenuEvent.Prev);
                     },
                     c.SDLK_SPACE, c.SDLK_RETURN => {
-                        self.handleEvent(MenuEvent.Select) catch unreachable;
+                        try self.handleEvent(MenuEvent.Select);
                     },
                     else => {},
                 }
-                const keyboard_event = event.key;
-                print("Key Down: {s}\n", .{
-                    c.SDL_GetKeyName(keyboard_event.key),
-                });
+                self.printStateEventKey(event);
+                //const keyboard_event = event.key;
+                //print("Key Down: {s}\n", .{
+                //    c.SDL_GetKeyName(keyboard_event.key),
+                //});
             },
             c.SDL_EVENT_KEY_UP => {
                 switch (event.key.key) {
@@ -109,7 +119,24 @@ pub const App = struct {
         return c.SDL_APP_CONTINUE;
     }
 
+    pub fn handleGameSdlEvent(self: *Self, event: *c.SDL_Event) !c.SDL_AppResult {
+        switch (event.type) {
+            c.SDL_EVENT_KEY_UP => {
+                switch (event.key.key) {
+                    c.SDLK_ESCAPE => {
+                        self.exitCurrentState();
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
+        self.printStateEventKey(event);
+        return c.SDL_APP_CONTINUE;
+    }
+
     pub fn exitCurrentState(self: *Self) void {
+        const oldState = self.state;
         switch (self.state) {
             AppState.Game => {
                 self.state = AppState.Menu;
@@ -121,24 +148,28 @@ pub const App = struct {
                 self.state = AppState.Menu;
             },
         }
+        print("State: {any} → {any}\n", .{ oldState, self.state });
     }
 
-    pub fn handleMenuSelect(self: *Self, item: gamemenu.GameMenu.Item) !void {
+    pub fn handleMenuSelect(self: *Self, item: gamemenu.GameMenu.Item) !c.SDL_AppResult {
         switch (item) {
             .NewGame => {
                 self.enterGameState();
             },
             .ConfirmExit => {
-                std.debug.print("Exiting.... ", .{}); // handle enter
-                _ = self.exit() catch unreachable;
+                print("Exiting.... ", .{}); // handle enter
+                return c.SDL_APP_SUCCESS;
+                //_ = self.exit() catch unreachable;
             },
             else => {},
         }
+        return c.SDL_APP_CONTINUE;
     }
 
     fn enterGameState(self: *Self) void {
-        std.debug.print("Entering.... ", .{}); // handle enter
+        std.debug.print("Entering Game:", .{}); // handle enter
         self.state = AppState.Game;
+        self.handleStateEvent = App.handleGameSdlEvent;
     }
 
     fn exit(self: *Self) !c.SDL_AppResult {
@@ -168,7 +199,7 @@ pub const App = struct {
                     self.menu.moveSelection(-1);
                 },
                 .Select => {
-                    try self.handleMenuSelect(self.menu.getSelectedItem());
+                    _ = try self.handleMenuSelect(self.menu.getSelectedItem());
                 },
             },
             else => {},
