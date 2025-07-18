@@ -15,7 +15,6 @@ fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
 
     const appPtr: *App = @alignCast(@ptrCast(appstate.?));
     try appPtr.updateGfx();
-    try errify(c.SDL_RenderPresent(appPtr.renderer));
 
     timekeeper.produce(c.SDL_GetPerformanceCounter());
     return c.SDL_APP_CONTINUE;

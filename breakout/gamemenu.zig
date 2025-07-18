@@ -11,8 +11,8 @@ pub const GameMenu = struct {
 
     /// The index of the currently selected menu item.
     currentIndex: isize = 0,
-    x: f32 = 1,
-    y: f32 = 1,
+    x: f32 = 0,
+    y: f32 = 0,
     /// Represents a single, selectable item in the menu.
     pub const Item = enum(u8) {
         NewGame,
@@ -63,7 +63,7 @@ pub const GameMenu = struct {
             fillColour = if (isSelected) 0xaa else 0x00;
             _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, fillColour, 0xaa));
             _ = try errify(c.SDL_RenderFillRect(renderer, &menuRect));
-            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x22, 0xff));
+            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x22, 0x88));
             _ = try errify(c.SDL_RenderDebugText(renderer, self.x, self.y + index * textHeight + linePadding, item.label()));
             menuRect.y += textHeight + linePadding;
         }

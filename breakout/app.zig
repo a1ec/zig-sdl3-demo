@@ -8,6 +8,7 @@ const errify = sdlGlue.errify;
 var app_err: sdlGlue.ErrorStore = .{};
 
 const gamemenu = @import("gamemenu.zig");
+const GameMenu = @import("gamemenu.zig").GameMenu;
 
 const textHeight: f32 = 10;
 const textWidth: f32 = 10;
@@ -30,21 +31,35 @@ const Game = struct {
         Running,
     };
 
-    pub fn draw(self: Self, renderer: *c.SDL_Renderer) !void {
-        _ = self;
-        _ = renderer;
-        std.debug.print("", .{});
+    framesDrawn: u32 = 0,
+    gameStr: [100]u8 = undefined,
+    state: State = State.Running,
+
+    pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {
+        _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0x88));
+        // Use subslice to ensure buffer has at least 1 byte of free space for the null.
+        const buffer = self.gameStr[0 .. self.gameStr.len - 1];
+        const message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });
+
+        // Manually add the null terminator.
+        self.gameStr[message_slice.len] = 0;
+        // The C function will read up to the null byte we just wrote.
+        _ = try errify(c.SDL_RenderDebugText(renderer, 0, 0, &self.gameStr[0]));
+
+        self.framesDrawn += 1;
     }
 };
 
 const AppState = enum {
     Menu,
     Game,
-    ConfirmExit,
 };
 
 pub const App = struct {
     const Self = @This();
+    const stateChangeMsg = "State: {any}  → {any}\n";
+    const eventKeyMsg = "{any}: {s}\n";
+
     state: AppState,
     renderer: *c.SDL_Renderer,
     window: *c.SDL_Window,
@@ -53,7 +68,7 @@ pub const App = struct {
     gameScreenBufferHeight: f32,
     window_w: i32,
     window_h: i32,
-    menu: gamemenu.GameMenu,
+    menu: GameMenu,
     game: Game,
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = App.handleMenuSdlEvent,
 
@@ -65,7 +80,7 @@ pub const App = struct {
         return App{
             .state = AppState.Menu,
             .game = Game{},
-            .menu = gamemenu.GameMenu{},
+            .menu = GameMenu{},
             .renderer = undefined,
             .window = undefined,
             .gameScreenScale = scale,
@@ -77,11 +92,7 @@ pub const App = struct {
     }
 
     pub fn printStateEventKey(self: *Self, event: *c.SDL_Event) void {
-        print("{any}: {any} {s}\n", .{
-            self.state,
-            event,
-            c.SDL_GetKeyName(event.key.key),
-        });
+        print(App.eventKeyMsg, .{ self.state, c.SDL_GetKeyName(event.key.key) });
     }
 
     pub fn handleMenuSdlEvent(self: *Self, event: *c.SDL_Event) !c.SDL_AppResult {
@@ -100,15 +111,11 @@ pub const App = struct {
                     else => {},
                 }
                 self.printStateEventKey(event);
-                //const keyboard_event = event.key;
-                //print("Key Down: {s}\n", .{
-                //    c.SDL_GetKeyName(keyboard_event.key),
-                //});
             },
             c.SDL_EVENT_KEY_UP => {
                 switch (event.key.key) {
                     c.SDLK_ESCAPE => {
-                        //self.exitCurrentState();
+                        _ = try self.exitCurrentState();
                         return c.SDL_APP_SUCCESS;
                     },
                     else => {},
@@ -124,7 +131,7 @@ pub const App = struct {
             c.SDL_EVENT_KEY_UP => {
                 switch (event.key.key) {
                     c.SDLK_ESCAPE => {
-                        self.exitCurrentState();
+                        return self.exitCurrentState();
                     },
                     else => {},
                 }
@@ -135,29 +142,27 @@ pub const App = struct {
         return c.SDL_APP_CONTINUE;
     }
 
-    pub fn exitCurrentState(self: *Self) void {
+    pub fn exitCurrentState(self: *Self) !c.SDL_AppResult {
         const oldState = self.state;
         switch (self.state) {
             AppState.Game => {
-                self.state = AppState.Menu;
+                self.exitGameState();
             },
             AppState.Menu => {
-                self.state = AppState.ConfirmExit;
-            },
-            AppState.ConfirmExit => {
-                self.state = AppState.Menu;
+                print(App.stateChangeMsg, .{ oldState, self.state });
+                return c.SDL_APP_SUCCESS;
             },
         }
-        print("State: {any} → {any}\n", .{ oldState, self.state });
+        print(App.stateChangeMsg, .{ oldState, self.state });
+        return c.SDL_APP_CONTINUE;
     }
 
-    pub fn handleMenuSelect(self: *Self, item: gamemenu.GameMenu.Item) !c.SDL_AppResult {
+    pub fn handleMenuSelect(self: *Self, item: GameMenu.Item) !c.SDL_AppResult {
         switch (item) {
             .NewGame => {
                 self.enterGameState();
             },
             .ConfirmExit => {
-                print("Exiting.... ", .{}); // handle enter
                 return c.SDL_APP_SUCCESS;
                 //_ = self.exit() catch unreachable;
             },
@@ -167,9 +172,13 @@ pub const App = struct {
     }
 
     fn enterGameState(self: *Self) void {
-        std.debug.print("Entering Game:", .{}); // handle enter
         self.state = AppState.Game;
         self.handleStateEvent = App.handleGameSdlEvent;
+    }
+
+    fn exitGameState(self: *Self) void {
+        self.state = AppState.Menu;
+        self.handleStateEvent = App.handleMenuSdlEvent;
     }
 
     fn exit(self: *Self) !c.SDL_AppResult {
@@ -183,10 +192,13 @@ pub const App = struct {
                 try self.menu.draw(self.renderer);
             },
             AppState.Game => {
+                try errify(c.SDL_SetRenderDrawColor(self.renderer, 0x00, 0x00, 0x00, 0xaa));
+                try errify(c.SDL_RenderClear(self.renderer));
+                try errify(c.SDL_SetRenderDrawColor(self.renderer, 0x12, 0x34, 0x56, 0xaa));
                 try self.game.draw(self.renderer);
             },
-            else => {},
         }
+        try errify(c.SDL_RenderPresent(self.renderer));
     }
 
     pub fn handleEvent(self: *Self, event: MenuEvent) !void {
