@@ -7,8 +7,9 @@ const sdlGlue = @import("sdlglue.zig");
 const errify = sdlGlue.errify;
 var app_err: sdlGlue.ErrorStore = .{};
 
-const gamemenu = @import("gamemenu.zig");
-const GameMenu = @import("gamemenu.zig").GameMenu;
+const gamemenu = @import("menu.zig");
+const GameMenu = @import("menu.zig").GameMenu;
+const Game = @import("game.zig").Game;
 
 const textHeight: f32 = 10;
 const textWidth: f32 = 10;
@@ -22,32 +23,6 @@ pub const MenuEvent = enum {
     Next,
     Prev,
     Select,
-};
-
-const Game = struct {
-    const Self = @This();
-    const State = enum {
-        Paused,
-        Running,
-    };
-
-    framesDrawn: u32 = 0,
-    gameStr: [100]u8 = undefined,
-    state: State = State.Running,
-
-    pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {
-        _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0x88));
-        // Use subslice to ensure buffer has at least 1 byte of free space for the null.
-        const buffer = self.gameStr[0 .. self.gameStr.len - 1];
-        const message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });
-
-        // Manually add the null terminator.
-        self.gameStr[message_slice.len] = 0;
-        // The C function will read up to the null byte we just wrote.
-        _ = try errify(c.SDL_RenderDebugText(renderer, 0, 0, &self.gameStr[0]));
-
-        self.framesDrawn += 1;
-    }
 };
 
 const AppState = enum {
@@ -136,6 +111,17 @@ pub const App = struct {
                     else => {},
                 }
             },
+            c.SDL_EVENT_KEY_DOWN => {
+                switch (event.key.key) {
+                    c.SDLK_P => {
+                        self.game.state = Game.State.Paused;
+                    },
+                    c.SDLK_R => {
+                        self.game.state = Game.State.Running;
+                    },
+                    else => {},
+                }
+            },
             else => {},
         }
         self.printStateEventKey(event);
@@ -177,6 +163,7 @@ pub const App = struct {
     }
 
     fn exitGameState(self: *Self) void {
+        self.game.state = Game.State.Paused;
         self.state = AppState.Menu;
         self.handleStateEvent = App.handleMenuSdlEvent;
     }
@@ -192,9 +179,6 @@ pub const App = struct {
                 try self.menu.draw(self.renderer);
             },
             AppState.Game => {
-                try errify(c.SDL_SetRenderDrawColor(self.renderer, 0x00, 0x00, 0x00, 0xaa));
-                try errify(c.SDL_RenderClear(self.renderer));
-                try errify(c.SDL_SetRenderDrawColor(self.renderer, 0x12, 0x34, 0x56, 0xaa));
                 try self.game.draw(self.renderer);
             },
         }

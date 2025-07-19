@@ -1,10 +1,12 @@
 AC Modifications
 WIP
- - add a different game state, SDL debug print the current key, go back to menu on esc 
+ - separate game draw buffer
+ - translucent pause overlay
 
 Done
  - separate files
  - separate SDL routines
+ - add a different game state, SDL debug print the current key, go back to menu on esc 
 
 
 <!--
