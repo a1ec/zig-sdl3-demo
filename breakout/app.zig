@@ -52,10 +52,10 @@ pub const App = struct {
         const buffer_h = 240;
         const scale = 2;
 
-        return App{
+        var self = App{
             .state = AppState.Menu,
-            .game = Game{},
-            .menu = GameMenu{},
+            .game = undefined,
+            .menu = undefined,
             .renderer = undefined,
             .window = undefined,
             .gameScreenScale = scale,
@@ -64,6 +64,8 @@ pub const App = struct {
             .window_w = buffer_w * scale,
             .window_h = buffer_h * scale,
         };
+        self.game = Game.init(&self);
+        return self;
     }
 
     pub fn printStateEventKey(self: *Self, event: *c.SDL_Event) void {
@@ -72,6 +74,9 @@ pub const App = struct {
 
     pub fn handleMenuSdlEvent(self: *Self, event: *c.SDL_Event) !c.SDL_AppResult {
         switch (event.type) {
+            c.SDL_EVENT_QUIT => {
+                return c.SDL_APP_SUCCESS;
+            },
             c.SDL_EVENT_KEY_DOWN => {
                 switch (event.key.key) {
                     c.SDLK_S, c.SDLK_D => {
@@ -146,7 +151,7 @@ pub const App = struct {
     pub fn handleMenuSelect(self: *Self, item: GameMenu.Item) !c.SDL_AppResult {
         switch (item) {
             .NewGame => {
-                self.enterGameState();
+                try self.enterGameState();
             },
             .ConfirmExit => {
                 return c.SDL_APP_SUCCESS;
@@ -157,9 +162,10 @@ pub const App = struct {
         return c.SDL_APP_CONTINUE;
     }
 
-    fn enterGameState(self: *Self) void {
+    fn enterGameState(self: *Self) !void {
         self.state = AppState.Game;
         self.handleStateEvent = App.handleGameSdlEvent;
+        try self.game.drawNoPauseCheck(self.renderer);
     }
 
     fn exitGameState(self: *Self) void {

@@ -2,7 +2,7 @@ const c = @import("cimports.zig").c;
 const sdlGlue = @import("sdlglue.zig");
 const errify = sdlGlue.errify;
 const std = @import("std");
-
+const App = @import("app.zig").App;
 const print = std.debug.print;
 
 pub const Game = struct {
@@ -15,34 +15,41 @@ pub const Game = struct {
     framesDrawn: u32 = 0,
     gameStr: [100]u8 = undefined,
     state: State = State.Running,
+    app: *App = undefined,
 
-    //    pub fn handleSdlEvent(self: *Self, app: *App, event: *c.SDL_Event) !c.SDL_AppResult {
-    //       switch (event.type) {
-    //          c.SDL_EVENT_KEY_DOWN => {
-    //                switch (event.key.key) {
-    //                    c.SDLK_ESCAPE => {
-    //                        return app.exitCurrentState();
-    //                    },
-    //                    c.SDLK_P => {
-    //                        self.state = State.Paused;
-    //                    },
-    //                    c.SDLK_R => {
-    //                        self.state = State.Running;
-    //                    },
-    //                    else => {},
-    //                }
-    //            },
-    //            else => {},
-    //        }
-    //        App.printStateEventKey(event);
-    //        return c.SDL_APP_CONTINUE;
-    //    }
+    pub fn init(app: *App) Game {
+        return Game{ .app = app };
+    }
 
-    pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {
-        if (self.state == State.Paused) {
-            return;
+    pub fn sdlEventHandler(app: *App, event: *c.SDL_Event) !c.SDL_AppResult {
+        var self = app.game;
+        switch (event.type) {
+            c.SDL_EVENT_KEY_UP => {
+                switch (event.key.key) {
+                    c.SDLK_ESCAPE => {
+                        return app.exitCurrentState();
+                    },
+                    else => {},
+                }
+            },
+            c.SDL_EVENT_KEY_DOWN => {
+                switch (event.key.key) {
+                    c.SDLK_P => {
+                        self.state = Game.State.Paused;
+                    },
+                    c.SDLK_R => {
+                        self.state = Game.State.Running;
+                    },
+                    else => {},
+                }
+            },
+            else => {},
         }
+        app.printStateEventKey(event);
+        return c.SDL_APP_CONTINUE;
+    }
 
+    pub fn drawNoPauseCheck(self: *Self, renderer: *c.SDL_Renderer) !void {
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xaa));
         try errify(c.SDL_RenderClear(renderer));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x12, 0x34, 0x56, 0xaa));
@@ -55,7 +62,12 @@ pub const Game = struct {
         self.gameStr[message_slice.len] = 0;
         // The C function will read up to the null byte we just wrote.
         _ = try errify(c.SDL_RenderDebugText(renderer, 0, 0, &self.gameStr[0]));
+    }
 
-        self.framesDrawn += 1;
+    pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {
+        _ = try self.drawNoPauseCheck(renderer);
+        if (self.state == State.Running) {
+            self.framesDrawn += 1;
+        }
     }
 };
