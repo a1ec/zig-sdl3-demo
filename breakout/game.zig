@@ -5,6 +5,17 @@ const std = @import("std");
 const App = @import("app.zig").App;
 const print = std.debug.print;
 
+fn generateCharacterBytes() [256]u8 {
+    var buffer: [256]u8 = undefined;
+    // Loop from index 0 to 254.
+    for (0..255) |i| {
+        // At index 0, place value 1. At index 1, place value 2, etc.
+        buffer[i] = @intCast(i + 1);
+    }
+    buffer[255] = 0;
+    return buffer;
+}
+
 pub const Game = struct {
     const Self = @This();
     pub const State = enum {
@@ -14,6 +25,7 @@ pub const Game = struct {
 
     framesDrawn: u32 = 0,
     gameStr: [100]u8 = undefined,
+    textBytes: [256]u8 = generateCharacterBytes(),
     state: State = State.Running,
     app: *App = undefined,
 
@@ -22,7 +34,7 @@ pub const Game = struct {
     }
 
     pub fn sdlEventHandler(app: *App, event: *c.SDL_Event) !c.SDL_AppResult {
-        var self = app.game;
+        var self = &app.game;
         switch (event.type) {
             c.SDL_EVENT_KEY_UP => {
                 switch (event.key.key) {
@@ -53,7 +65,7 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xaa));
         try errify(c.SDL_RenderClear(renderer));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x12, 0x34, 0x56, 0xaa));
-        _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff));
         // Use subslice to ensure buffer has at least 1 byte of free space for the null.
         const buffer = self.gameStr[0 .. self.gameStr.len - 1];
         const message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });

@@ -73,7 +73,8 @@ fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) ca
     const allocator = std.heap.page_allocator;
     const appPtr = allocator.create(App) catch return c.SDL_APP_FAILURE;
     // initialize with your init fn
-    appPtr.* = App.init();
+    appPtr.* = undefined;
+    appPtr.init();
 
     // 3. Store it (cast to anyopaque to satisfy the C API)
     stateSlot.* = @ptrCast(appPtr);

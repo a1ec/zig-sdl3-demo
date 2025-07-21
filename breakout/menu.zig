@@ -1,5 +1,7 @@
 const std = @import("std");
 const sdlGlue = @import("sdlglue.zig");
+const App = @import("app.zig").App;
+const print = std.debug.print;
 const errify = sdlGlue.errify;
 
 // Assumes a cimports.zig file exists for SDL bindings
@@ -13,6 +15,7 @@ pub const GameMenu = struct {
     currentIndex: isize = 0,
     x: f32 = 0,
     y: f32 = 0,
+    app: *App,
     /// Represents a single, selectable item in the menu.
     pub const Item = enum(u8) {
         NewGame,
@@ -29,6 +32,61 @@ pub const GameMenu = struct {
         }
     };
 
+    pub fn init(app: *App) GameMenu {
+        return GameMenu{ .app = app };
+    }
+
+    pub fn sdlEventHandler(app: *App, event: *c.SDL_Event) !c.SDL_AppResult {
+        var self = &app.menu;
+        switch (event.type) {
+            c.SDL_EVENT_QUIT => {
+                return c.SDL_APP_SUCCESS;
+            },
+            c.SDL_EVENT_KEY_DOWN => {
+                switch (event.key.key) {
+                    c.SDLK_S, c.SDLK_D => {
+                        self.moveSelection(1);
+                    },
+                    c.SDLK_A, c.SDLK_W => {
+                        self.moveSelection(-1);
+                    },
+                    c.SDLK_SPACE, c.SDLK_RETURN => {
+                        return self.handleMenuSelect();
+                    },
+                    else => {},
+                }
+                app.printStateEventKey(event);
+            },
+            c.SDL_EVENT_KEY_UP => {
+                switch (event.key.key) {
+                    c.SDLK_ESCAPE => {
+                        _ = try app.exitCurrentState();
+                        return c.SDL_APP_SUCCESS;
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
+        return c.SDL_APP_CONTINUE;
+    }
+
+    pub fn handleMenuSelect(self: *Self) !c.SDL_AppResult {
+        const item = self.getSelectedItem();
+        print("Select: {any}\n", .{item});
+        switch (item) {
+            .NewGame => {
+                try self.app.enterGameState();
+            },
+            .ConfirmExit => {
+                return c.SDL_APP_SUCCESS;
+                //_ = self.exit() catch unreachable;
+            },
+            else => {},
+        }
+        return c.SDL_APP_CONTINUE;
+    }
+
     /// A compile-time slice of all available menu items.
     pub const allItems = std.enums.values(Item);
 
@@ -40,7 +98,7 @@ pub const GameMenu = struct {
     }
 
     /// Returns the currently selected menu item enum.
-    pub fn getSelectedItem(self: Self) Item {
+    pub fn getSelectedItem(self: *Self) Item {
         // `allItems` is a constant on the type, not the instance.
         return Self.allItems[@intCast(self.currentIndex)];
     }
