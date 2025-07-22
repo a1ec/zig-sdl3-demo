@@ -25,8 +25,8 @@ pub const GameMenu = struct {
         /// Returns the display text for a menu item.
         pub fn label(self: Item) [*c]const u8 {
             return switch (self) {
-                .NewGame => "New Game",
-                .ResumeGame => "Resume Game",
+                .NewGame => "Start",
+                .ResumeGame => "Resume",
                 .ConfirmExit => "Exit",
             };
         }
@@ -55,7 +55,7 @@ pub const GameMenu = struct {
                     },
                     else => {},
                 }
-                app.printStateEventKey(event);
+                //app.printStateEventKey(event);
             },
             c.SDL_EVENT_KEY_UP => {
                 switch (event.key.key) {
@@ -118,8 +118,8 @@ pub const GameMenu = struct {
         for (Self.allItems, 0..) |item, i| {
             const isSelected = if (self.currentIndex == i) true else false;
             const index: f32 = @floatFromInt(i);
-            fillColour = if (isSelected) 0xaa else 0x00;
-            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, fillColour, 0xaa));
+            fillColour = if (isSelected) 0xaa else 0xff;
+            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, fillColour, fillColour));
             _ = try errify(c.SDL_RenderFillRect(renderer, &menuRect));
             _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x22, 0xff));
             _ = try errify(c.SDL_RenderDebugText(renderer, self.x, self.y + index * textHeight + linePadding, item.label()));

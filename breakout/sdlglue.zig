@@ -37,8 +37,8 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
     try errify(c.SDL_CreateWindowAndRenderer("examples/renderer/debug-text", app.*.window_w, app.*.window_h, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
-
     try errify(c.SDL_SetRenderScale(app.*.renderer, app.*.gameScreenScale, app.*.gameScreenScale));
+    try errify(c.SDL_SetRenderDrawBlendMode(app.*.renderer, c.SDL_BLENDMODE_BLEND));
     try errify(c.SDL_SetRenderDrawColor(app.*.renderer, 0x00, 0x00, 0x00, 0xff));
     try errify(c.SDL_RenderClear(app.*.renderer));
     return c.SDL_APP_CONTINUE;

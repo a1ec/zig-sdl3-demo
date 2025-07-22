@@ -7,8 +7,7 @@ const sdlGlue = @import("sdlglue.zig");
 const errify = sdlGlue.errify;
 var app_err: sdlGlue.ErrorStore = .{};
 
-const gamemenu = @import("menu.zig");
-const GameMenu = gamemenu.GameMenu;
+const GameMenu = @import("menu.zig").GameMenu;
 const Game = @import("game.zig").Game;
 
 const textHeight: f32 = 10;
@@ -50,7 +49,7 @@ pub const App = struct {
     pub fn init(self: *App) void {
         const buffer_w = 320;
         const buffer_h = 240;
-        const scale = 2;
+        const scale = 4;
 
         self.* = .{
             .state = AppState.Menu,
@@ -61,8 +60,8 @@ pub const App = struct {
             .gameScreenScale = scale,
             .gameScreenBufferWidth = buffer_w,
             .gameScreenBufferHeight = buffer_h,
-            .window_w = buffer_w * scale,
-            .window_h = buffer_h * scale,
+            .window_w = buffer_w * @as(f32, @floatFromInt(scale)),
+            .window_h = buffer_h * @as(f32, @floatFromInt(scale)),
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
         self.game = Game.init(self);
