@@ -86,29 +86,29 @@ pub const Game = struct {
         // Use subslice to ensure buffer has at least 1 byte of free space for the null.
         const buffer = self.gameStr[0 .. self.gameStr.len - 1];
         var message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });
-
         // Manually add the null terminator.
         self.gameStr[message_slice.len] = 0;
         // The C function will read up to the null byte we just wrote.
         try errify(c.SDL_RenderDebugText(renderer, 0, 0, &self.gameStr[0]));
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 5));
-        try errify(c.SDL_RenderDebugText(renderer, 0, 16, &self.textBytes[32]));
-        try errify(c.SDL_RenderDebugText(renderer, 0, 24, &self.textBytes[64]));
-        message_slice = try std.fmt.bufPrint(buffer, "{any}\x00", .{
-            @TypeOf(&self.textBytes[64]),
-        });
-        mousePos = getMousePosition(&floatx, &floaty, self.app.gameScreenScale);
-        message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ @as(u32, @intFromFloat(mousePos.x)), @as(u32, @intFromFloat(mousePos.y)) });
-        try errify(c.SDL_RenderDebugText(renderer, 0, 48, &message_slice[0]));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
+        try errify(c.SDL_RenderDebugText(renderer, 0, 16, &self.textBytes[64]));
+        try errify(c.SDL_RenderDebugText(renderer, 0, 24, &self.textBytes[64 + 40]));
+        try errify(c.SDL_RenderDebugText(renderer, 0, 32, &self.textBytes[64 + 80]));
 
-        // with a black background, results in a specular highlight effect
+        // mouse co-ordinates
+        mousePos = getMousePosition(&floatx, &floaty, self.app.gameScreenScale);
+        const intX = @trunc(mousePos.x);
+        const intY = @trunc(mousePos.y);
+        message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ intX, intY });
+        try errify(c.SDL_RenderDebugText(renderer, 0, 40, &message_slice[0]));
+
+        // with a black background, nice specular highlight effect on non-black
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
 
-        // cross hair
-        // horizontal line
-        _ = c.SDL_RenderLine(renderer, 0, mousePos.y, @as(f32, @floatFromInt(self.app.window_w)), mousePos.y);
+        // cross hairs, horizontal line
+        _ = c.SDL_RenderLine(renderer, 0, intY, @as(f32, @floatFromInt(self.app.window_w)), intY);
         // vertical line
-        _ = c.SDL_RenderLine(renderer, mousePos.x, 0, mousePos.x, @as(f32, @floatFromInt(self.app.window_h)));
+        _ = c.SDL_RenderLine(renderer, intX, 0, intX, @as(f32, @floatFromInt(self.app.window_h)));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 4));
         drawGrid(-1, -1, 320, 240, 320 / 40, 240 / 30, renderer);
