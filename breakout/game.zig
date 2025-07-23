@@ -28,6 +28,8 @@ pub const Game = struct {
     app: *App = undefined,
     showGrid: bool = true,
     framesDrawn: u32 = 0,
+    const buffer_width = 320;
+    const buffer_height = 240;
 
     pub fn init(app: *App) Game {
         return Game{ .app = app };
