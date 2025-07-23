@@ -81,6 +81,7 @@ pub const App = struct {
     pub fn enterGameState(self: *Self) !void {
         self.setState(AppState.Game);
         self.handleStateEvent = Game.sdlEventHandler;
+        _ = c.SDL_HideCursor();
         //self.game.state = Game.State.Running;
         try self.game.drawNoPauseCheck(self.renderer);
     }
@@ -89,6 +90,7 @@ pub const App = struct {
         self.game.state = Game.State.Paused;
         self.setState(AppState.Menu);
         self.handleStateEvent = GameMenu.sdlEventHandler;
+        _ = c.SDL_ShowCursor();
     }
 
     pub fn exitCurrentState(self: *Self) !c.SDL_AppResult {

@@ -5,6 +5,7 @@ const std = @import("std");
 const App = @import("app.zig").App;
 const print = std.debug.print;
 const gfx = @import("gfx.zig");
+const entity = @import("entity.zig");
 
 fn generateCharacterBytes() [256]u8 {
     var buffer: [256]u8 = undefined;
@@ -22,13 +23,18 @@ pub const Game = struct {
         Running,
     };
 
-    framesDrawn: u32 = 0,
     textBytes: [256]u8 = generateCharacterBytes(),
     state: State = State.Running,
     app: *App = undefined,
+    showGrid: bool = true,
+    framesDrawn: u32 = 0,
 
     pub fn init(app: *App) Game {
         return Game{ .app = app };
+    }
+
+    pub fn toggleGrid(self: *Self) void {
+        self.showGrid = ~self.showGrid;
     }
 
     pub fn sdlEventHandler(app: *App, event: *c.SDL_Event) !c.SDL_AppResult {
@@ -49,6 +55,9 @@ pub const Game = struct {
                     },
                     c.SDLK_R => {
                         self.state = Game.State.Running;
+                    },
+                    c.SDLK_G => {
+                        self.toggleGrid();
                     },
                     else => {},
                 }
@@ -71,6 +80,7 @@ pub const Game = struct {
         var floatx: f32 = 0;
         var floaty: f32 = 0;
         var mousePos: Point = .{ .x = 0, .y = 0 };
+        const playerShip = entity.player;
 
         var gameStr: [100]u8 = undefined;
 
@@ -102,7 +112,6 @@ pub const Game = struct {
         const floatH = @as(f32, @floatFromInt(self.app.window_h));
         message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ intX, intY });
         try errify(c.SDL_RenderDebugText(renderer, 0, @as(f32, @floatFromInt(line * textHeight)), &message_slice[0]));
-
         // with a black background, nice specular highlight effect on non-black
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
 
@@ -110,8 +119,11 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 4));
-        gfx.drawGrid(-1, -1, 320, 240, 320 / 40, 240 / 30, renderer);
+        if (self.showGrid) {
+            gfx.drawGrid(-1, -1, 320, 240, 320 / 40, 240 / 30, renderer);
+        }
         gfx.drawCrossHairsFullScreen(intX, intY, floatW, floatH, renderer);
+        _ = c.SDL_RenderGeometry(renderer, null, &playerShip, playerShip.len, null, 0);
     }
 
     pub fn getMousePosition(x: *f32, y: *f32, scale: f32) Point {
