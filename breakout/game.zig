@@ -24,7 +24,9 @@ pub const Game = struct {
     const buffer_height = 240;
 
     pub fn init(app: *App) !Game {
+        print("playerSHip creation:\n", .{});
         const playerShip = try entity.PlayerShip.init(app.renderer);
+        print("playerSHip init OK!:\n", .{});
         return Game{
             .app = app,
             .playerShip = playerShip,
@@ -68,7 +70,7 @@ pub const Game = struct {
 
     const Point = struct { x: f32 = 0, y: f32 = 0 };
 
-    //pub fn drawText(comptime fmt: []const u8, args: anytype, renderer: *c.SDL_Renderer) void {
+    //pub fn drawText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []const u8, args: anytype) void {
     // drawText("{}", .{myStr,}, renderer);
     //  const buffer = self.[0 .. self.gameStr.len - 1];
     //var message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });

@@ -14,16 +14,6 @@ const textHeight: f32 = 10;
 const textWidth: f32 = 10;
 const linePad: f32 = 2;
 
-pub const AppEvent = enum {
-    ExitCurrentState,
-};
-
-pub const MenuEvent = enum {
-    Next,
-    Prev,
-    Select,
-};
-
 const AppState = enum {
     Menu,
     Game,
@@ -66,7 +56,10 @@ pub const App = struct {
             .window_h = buffer_h * @as(f32, @floatFromInt(scale)),
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
+        print("Game.init():\n", .{});
         self.game = try Game.init(self);
+
+        print("GameMenu.init():\n", .{});
         self.menu = GameMenu.init(self);
     }
 

@@ -109,7 +109,7 @@ fn sdlAppQuitC(appstate: ?*anyopaque, result: c.SDL_AppResult) callconv(.c) void
 }
 // END BLOCK Callbacks
 
-// Converts the return value of an SDL function to an error union.
+// Converts the varying return values of the SDL functions to a Zig error union.
 pub inline fn errify(value: anytype) error{SdlError}!switch (@typeInfo(@TypeOf(value))) {
     .bool => void,
     .pointer, .optional => @TypeOf(value.?),

@@ -33,14 +33,11 @@ fn bakeGeometryTexture(renderer: *c.SDL_Renderer) !*c.SDL_Texture {
     try errify(c.SDL_SetTextureBlendMode(shipTexture, c.SDL_BLENDMODE_BLEND));
 
     const prevRenderTarget = try errify(c.SDL_GetRenderTarget(renderer));
-
-    // Temporarily set the render target to our new texture
     try errify(c.SDL_SetRenderTarget(renderer, shipTexture));
-
     // Clear the texture with *transparent black*
     try errify(c.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0));
     try errify(c.SDL_RenderClear(renderer));
-
+    try errify(c.SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255));
     // Center the ship geometry within the texture
     // The center of our texture is (8, 11)
     const center_x = SHIP_TEXTURE_WIDTH / 2.0;
@@ -54,14 +51,13 @@ fn bakeGeometryTexture(renderer: *c.SDL_Renderer) !*c.SDL_Texture {
     }
     // Render the centered geometry onto the texture
     _ = c.SDL_RenderGeometry(renderer, null, &centeredVertices[0], centeredVertices.len, null, 0);
-
-    // IMPORTANT: Reset the render target back to the previous (pixel buffer)
+    // Reset the render target back to the previous (pixel buffer)
     try errify(c.SDL_SetRenderTarget(renderer, prevRenderTarget));
 
     return shipTexture;
 }
 
-fn generateCharacterBytes() [256]u8 {
+pub fn generateCharacterBytes() [256]u8 {
     var buffer: [256]u8 = undefined;
     for (0..255) |i| {
         buffer[i] = @intCast(i + 1);
