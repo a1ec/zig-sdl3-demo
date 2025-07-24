@@ -52,6 +52,9 @@ fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
         sdl_log.err("{s}", .{c.SDL_GetError()});
     };
 
+    if (appState == null) {
+        return;
+    }
     const appPtr: *App = @alignCast(@ptrCast(appState.?));
     c.SDL_DestroyRenderer(appPtr.renderer);
     c.SDL_DestroyWindow(appPtr.window);
@@ -77,8 +80,17 @@ fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) ca
     const appPtr = allocator.create(App) catch return c.SDL_APP_FAILURE;
     // initialize with your init fn
     appPtr.* = undefined;
-    appPtr.init();
 
+    appPtr.init() catch |err| {
+        // Optional but highly recommended: Log the specific error.
+        std.log.err("Failed to initialize App: {s}", .{@errorName(err)});
+
+        // CRITICAL: Clean up the memory we allocated before failing.
+        allocator.destroy(appPtr);
+
+        // Return the C-style failure code that SDL expects.
+        return c.SDL_APP_FAILURE;
+    };
     // 3. Store it (cast to anyopaque to satisfy the C API)
     stateSlot.* = @ptrCast(appPtr);
     return sdlAppInit(appstate.?, @ptrCast(argv.?[0..@intCast(argc)])) catch |err| app_err.store(err);

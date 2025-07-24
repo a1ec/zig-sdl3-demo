@@ -47,10 +47,10 @@ pub const App = struct {
     game: Game,
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = GameMenu.sdlEventHandler,
 
-    pub fn init(self: *App) void {
+    pub fn init(self: *App) !void {
         const buffer_w = 320;
         const buffer_h = 240;
-        const scale = 2;
+        const scale = 4;
 
         self.* = .{
             .state = AppState.Menu,
@@ -66,7 +66,7 @@ pub const App = struct {
             .window_h = buffer_h * @as(f32, @floatFromInt(scale)),
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
-        self.game = Game.init(self);
+        self.game = try Game.init(self);
         self.menu = GameMenu.init(self);
     }
 

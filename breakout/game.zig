@@ -7,15 +7,6 @@ const print = std.debug.print;
 const gfx = @import("gfx.zig");
 const entity = @import("entity.zig");
 
-fn generateCharacterBytes() [256]u8 {
-    var buffer: [256]u8 = undefined;
-    for (0..255) |i| {
-        buffer[i] = @intCast(i + 1);
-    }
-    buffer[255] = 0;
-    return buffer;
-}
-
 pub const Game = struct {
     const Self = @This();
     pub const State = enum {
@@ -23,16 +14,21 @@ pub const Game = struct {
         Running,
     };
 
-    textBytes: [256]u8 = generateCharacterBytes(),
+    textBytes: [256]u8 = entity.generateCharacterBytes(),
     state: State = State.Running,
     app: *App = undefined,
+    playerShip: entity.PlayerShip,
     showGrid: bool = true,
     framesDrawn: u32 = 0,
     const buffer_width = 320;
     const buffer_height = 240;
 
-    pub fn init(app: *App) Game {
-        return Game{ .app = app };
+    pub fn init(app: *App) !Game {
+        const playerShip = try entity.PlayerShip.init(app.renderer);
+        return Game{
+            .app = app,
+            .playerShip = playerShip,
+        };
     }
 
     pub fn toggleGrid(self: *Self) void {
@@ -78,13 +74,28 @@ pub const Game = struct {
     //var message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });
     //}
 
+    pub fn drawPlayerShip(self: *Self, renderer: *c.SDL_Renderer) !void {
+        const destRect = c.SDL_FRect{
+            .x = self.playerShip.x - (16 / 2.0),
+            .y = self.playerShip.y - (24 / 2.0),
+            .w = 16,
+            .h = 24,
+        };
+        try errify(c.SDL_RenderTexture(
+            renderer,
+            self.playerShip.texture,
+            null, // srcrect: null to use the whole texture
+            &destRect,
+        ));
+    }
+
     pub fn drawNoPauseCheck(self: *Self, renderer: *c.SDL_Renderer) !void {
         var floatx: f32 = 0;
         var floaty: f32 = 0;
         var mousePos: Point = .{ .x = 0, .y = 0 };
-        const playerShip = entity.player;
 
         var gameStr: [100]u8 = undefined;
+        //const playerShipTexture = entity.bakePlayerShipTexture(renderer);
 
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xaa, 0xff));
         try errify(c.SDL_RenderClear(renderer));
@@ -112,20 +123,20 @@ pub const Game = struct {
         const intY = @trunc(mousePos.y);
         const floatW = @as(f32, @floatFromInt(self.app.window_w));
         const floatH = @as(f32, @floatFromInt(self.app.window_h));
-        message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ intX, intY });
-        try errify(c.SDL_RenderDebugText(renderer, 0, @as(f32, @floatFromInt(line * textHeight)), &message_slice[0]));
         // with a black background, nice specular highlight effect on non-black
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
 
-        // cross hairs, horizontal line
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
-        try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 4));
         if (self.showGrid) {
             gfx.drawGrid(-1, -1, 320, 240, 320 / 40, 240 / 30, renderer);
         }
+        message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ intX, intY });
+        // cross hairs, horizontal line
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
+        try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
+        try errify(c.SDL_RenderDebugText(renderer, 0, @as(f32, @floatFromInt(line * textHeight)), &message_slice[0]));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 4));
+
         gfx.drawCrossHairsFullScreen(intX, intY, floatW, floatH, renderer);
-        _ = c.SDL_RenderGeometry(renderer, null, &playerShip, playerShip.len, null, 0);
     }
 
     pub fn getMousePosition(x: *f32, y: *f32, scale: f32) Point {
