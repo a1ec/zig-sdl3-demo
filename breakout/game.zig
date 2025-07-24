@@ -17,16 +17,18 @@ pub const Game = struct {
     textBytes: [256]u8 = entity.generateCharacterBytes(),
     state: State = State.Running,
     app: *App = undefined,
-    playerShip: entity.PlayerShip,
+    playerShip: ?entity.PlayerShip,
     showGrid: bool = true,
     framesDrawn: u32 = 0,
     const buffer_width = 320;
     const buffer_height = 240;
 
     pub fn init(app: *App) !Game {
-        print("playerSHip creation:\n", .{});
-        const playerShip = try entity.PlayerShip.init(app.renderer);
-        print("playerSHip init OK!:\n", .{});
+        //print("playerSHip creation:\n", .{});
+        //const playerShip = try entity.PlayerShip.init(app.renderer);
+        const playerShip = null;
+        //
+        //print("playerSHip init OK!:\n", .{});
         return Game{
             .app = app,
             .playerShip = playerShip,
@@ -70,8 +72,17 @@ pub const Game = struct {
 
     const Point = struct { x: f32 = 0, y: f32 = 0 };
 
-    //pub fn drawText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []const u8, args: anytype) void {
-    // drawText("{}", .{myStr,}, renderer);
+    pub fn drawText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []const u8, args: anytype) !void {
+        var textBuffer: [257]u8 = undefined;
+        // Use subslice to ensure buffer has at least 1 byte of free space for the null.
+        const buffer = textBuffer[0 .. textBuffer.len - 1];
+        const message_slice = try std.fmt.bufPrint(buffer, fmt, args);
+        // Manually add the null terminator.
+        textBuffer[message_slice.len] = 0;
+        // The C function will read up to the null byte we just wrote.
+        _ = c.SDL_RenderDebugText(renderer, x, y, &textBuffer[0]);
+    }
+    //drawText(renderer, mousePos.x, mousePos.y, "This is it: {d},{d}", .{mousePos.x, mousePos.y},);
     //  const buffer = self.[0 .. self.gameStr.len - 1];
     //var message_slice = try std.fmt.bufPrint(buffer, "{any} frames: {d}", .{ self.state, self.framesDrawn });
     //}
@@ -96,8 +107,14 @@ pub const Game = struct {
         var floaty: f32 = 0;
         var mousePos: Point = .{ .x = 0, .y = 0 };
 
-        var gameStr: [100]u8 = undefined;
-        //const playerShipTexture = entity.bakePlayerShipTexture(renderer);
+        var gameStr: [257]u8 = undefined;
+
+        // mouse co-ordinates
+        mousePos = getMousePosition(&floatx, &floaty, self.app.gameScreenScale);
+        const posX = @trunc(mousePos.x);
+        const posY = @trunc(mousePos.y);
+        const floatW = @as(f32, @floatFromInt(self.app.window_w));
+        const floatH = @as(f32, @floatFromInt(self.app.window_h));
 
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xaa, 0xff));
         try errify(c.SDL_RenderClear(renderer));
@@ -109,36 +126,32 @@ pub const Game = struct {
         // Manually add the null terminator.
         gameStr[message_slice.len] = 0;
         // The C function will read up to the null byte we just wrote.
-        try errify(c.SDL_RenderDebugText(renderer, 0, 0, &gameStr[0]));
+        //try errify(c.SDL_RenderDebugText(renderer, 0, 0, &gameStr[0]));
+        //try drawText(renderer, 0, 0, "Hello! {s}", .{&gameStr[0]});
+        try drawText(renderer, posX, posY, "Hi! {s}", .{message_slice});
 
         // draw all debug characters
         var line: u8 = 1;
         const textHeight = 8;
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 7 / 10));
         while (line < 8) {
             try errify(c.SDL_RenderDebugText(renderer, 0, @as(f32, @floatFromInt(line * textHeight)), &self.textBytes[40 * (line - 1)])); // .. 40 * line]));
             line += 1;
         }
-        // mouse co-ordinates
-        mousePos = getMousePosition(&floatx, &floaty, self.app.gameScreenScale);
-        const intX = @trunc(mousePos.x);
-        const intY = @trunc(mousePos.y);
-        const floatW = @as(f32, @floatFromInt(self.app.window_w));
-        const floatH = @as(f32, @floatFromInt(self.app.window_h));
         // with a black background, nice specular highlight effect on non-black
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
 
         if (self.showGrid) {
             gfx.drawGrid(-1, -1, 320, 240, 320 / 40, 240 / 30, renderer);
         }
-        message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ intX, intY });
+        message_slice = try std.fmt.bufPrint(buffer, "{d},{d}\x00", .{ posX, posY });
         // cross hairs, horizontal line
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_RenderDebugText(renderer, 0, @as(f32, @floatFromInt(line * textHeight)), &message_slice[0]));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 4));
 
-        gfx.drawCrossHairsFullScreen(intX, intY, floatW, floatH, renderer);
+        gfx.drawCrossHairsFullScreen(posX, posY, floatW, floatH, renderer);
     }
 
     pub fn getMousePosition(x: *f32, y: *f32, scale: f32) Point {
