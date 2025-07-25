@@ -103,13 +103,14 @@ pub const Game = struct {
         mousePos = getMousePosition(&floatx, &floaty, self.app.pixelBufferScale);
         const posX = @trunc(mousePos.x);
         const posY = @trunc(mousePos.y);
-        const floatW = @as(f32, @floatFromInt(self.app.window_w));
-        const floatH = @as(f32, @floatFromInt(self.app.window_h));
+        const floatW = @as(f32, @floatFromInt(self.app.windowWidth));
+        const floatH = @as(f32, @floatFromInt(self.app.windowHeight));
 
         // Nice blue at 0,0,0xff/2
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff / 2, 0xff));
         try errify(c.SDL_RenderClear(renderer));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
+
         // draw all debug text characters
         var line: u8 = 1;
         const textHeight = 8;

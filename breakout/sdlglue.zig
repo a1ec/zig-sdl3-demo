@@ -36,7 +36,7 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
     try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
-    try errify(c.SDL_CreateWindowAndRenderer("demo1", app.*.window_w, app.*.window_h, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
+    try errify(c.SDL_CreateWindowAndRenderer("demo1", app.*.windowWidth, app.*.windowHeight, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
     app.*.pixelBuffer = c.SDL_CreateTexture(app.*.renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, @as(c_int, @intFromFloat(app.*.pixelBufferWidth)), @as(c_int, @intFromFloat(app.*.pixelBufferHeight)));
     _ = c.SDL_SetTextureScaleMode(app.*.pixelBuffer, c.SDL_SCALEMODE_NEAREST);
     //try c.SDL_SetRenderTarget(app.*.renderer, app.*.pixelBuffer);

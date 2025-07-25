@@ -31,8 +31,8 @@ pub const App = struct {
     pixelBufferScale: f32,
     pixelBufferWidth: f32,
     pixelBufferHeight: f32,
-    window_w: i32,
-    window_h: i32,
+    windowWidth: i32,
+    windowHeight: i32,
     menu: GameMenu,
     game: Game,
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = GameMenu.sdlEventHandler,
@@ -52,8 +52,8 @@ pub const App = struct {
             .pixelBufferScale = pixelBufferScale,
             .pixelBufferWidth = pixelBufferWidth,
             .pixelBufferHeight = pixelBufferHeight,
-            .window_w = pixelBufferWidth * pixelBufferScale,
-            .window_h = pixelBufferHeight * pixelBufferScale,
+            .windowWidth = pixelBufferWidth * pixelBufferScale,
+            .windowHeight = pixelBufferHeight * pixelBufferScale,
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
         print("Game.init():\n", .{});
