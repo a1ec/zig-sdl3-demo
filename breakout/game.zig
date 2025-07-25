@@ -8,6 +8,7 @@ const print = std.debug.print;
 const gfx = @import("gfx.zig");
 const entity = @import("entity.zig");
 const Point = @import("Point.zig");
+const Curve = @import("Curve.zig");
 
 pub const Game = struct {
     const Self = @This();
@@ -94,12 +95,15 @@ pub const Game = struct {
         ));
     }
 
-    var parabola_points = init: {
+    var old_parabola_points = init: {
         var initial_value: [320]c.SDL_FPoint = undefined;
         for (&initial_value, 0..) |*pt, i| {
+            const index = @as(f32, @floatFromInt(i));
+            const x = index;
+            const y = -(index * index) / 420 + 240;
             pt.* = c.SDL_FPoint{
-                .x = i,
-                .y = i * i / 480,
+                .x = x,
+                .y = y,
             };
         }
         break :init initial_value;
@@ -110,13 +114,15 @@ pub const Game = struct {
         var floaty: f32 = 0;
         var mousePos: Point = .{ .x = 0, .y = 0 };
 
-        //const parabola_points = generate240Points();
+        //const graph_points = generate240Points();
         // mouse co-ordinates
         mousePos = getMousePosition(&floatx, &floaty, self.app.pixel_buffer_scale);
         const posX = @trunc(mousePos.x);
         const posY = @trunc(mousePos.y);
         const floatW = @as(f32, @floatFromInt(self.app.window_width));
         const floatH = @as(f32, @floatFromInt(self.app.window_height));
+
+        //var graph_points = Curve.generatePoints(320, Curve.sine(x: f32, a: f32, b: f32, c_: f32))
 
         // Nice blue at 0,0,0xff/2
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff / 2, 0xff));
@@ -136,14 +142,35 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));
 
-        //try gfx.drawPoints(renderer, parabola_points);
         // draw a parabolic curve
-        for (0..(parabola_points.len - 1)) |i| {
-            const p1 = parabola_points[i];
-            const p2 = parabola_points[i + 1];
+        const my_parabola_config = Curve.ParabolaContext{
+            .a = posY / 500,
+            .b = posX / 30,
+            .c_ = 0,
+        };
+
+        var graph_points = Curve.generatePointsWithContext(320, &my_parabola_config, // Pass a pointer to the context struct
+            Curve.ParabolaContext.calc // Pass the function
+        );
+
+        const my_sine_config = Curve.SineWaveContext{
+            .amplitude = 25.0 * posY / 50,
+            .frequency = posX * 0.2 / 80,
+            .y_offset = 120.0,
+        };
+
+        graph_points = Curve.generatePointsWithContext(320, &my_sine_config, // Pass a pointer to the context struct
+            Curve.SineWaveContext.calc // Pass the function
+        );
+
+        for (0..(graph_points.len - 1)) |i| {
+            const p1 = graph_points[i];
+            const p2 = graph_points[i + 1];
             _ = c.SDL_RenderLine(renderer, p1.x, p1.y, p2.x, p2.y);
         }
-        _ = c.SDL_RenderPoints(renderer, &parabola_points, parabola_points.len);
+
+        //_ = c.SDL_RenderPoints(renderer, &graph_points, graph_points.len);
+        try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         if (self.is_grid_shown) {
             gfx.drawGrid(renderer, -1, -1, self.app.pixel_buffer_width, self.app.pixel_buffer_height, App.text_width, App.text_height);
         }
