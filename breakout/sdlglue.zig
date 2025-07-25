@@ -36,8 +36,8 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
     try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
     try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
-    try errify(c.SDL_CreateWindowAndRenderer("demo1", app.*.window_w, app.*.window_h, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
-    app.*.pixelBuffer = c.SDL_CreateTexture(app.*.renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, @as(c_int, @intFromFloat(app.*.pixelBufferBufferWidth)), @as(c_int, @intFromFloat(app.*.pixelBufferBufferHeight)));
+    try errify(c.SDL_CreateWindowAndRenderer("demo1", app.*.windowWidth, app.*.windowHeight, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
+    app.*.pixelBuffer = c.SDL_CreateTexture(app.*.renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, @as(c_int, @intFromFloat(app.*.pixelBufferWidth)), @as(c_int, @intFromFloat(app.*.pixelBufferHeight)));
     _ = c.SDL_SetTextureScaleMode(app.*.pixelBuffer, c.SDL_SCALEMODE_NEAREST);
     //try c.SDL_SetRenderTarget(app.*.renderer, app.*.pixelBuffer);
     try errify(c.SDL_SetRenderScale(app.*.renderer, app.*.pixelBufferScale, app.*.pixelBufferScale));
@@ -52,6 +52,9 @@ fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
         sdl_log.err("{s}", .{c.SDL_GetError()});
     };
 
+    if (appState == null) {
+        return;
+    }
     const appPtr: *App = @alignCast(@ptrCast(appState.?));
     c.SDL_DestroyRenderer(appPtr.renderer);
     c.SDL_DestroyWindow(appPtr.window);
@@ -77,8 +80,17 @@ fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) ca
     const appPtr = allocator.create(App) catch return c.SDL_APP_FAILURE;
     // initialize with your init fn
     appPtr.* = undefined;
-    appPtr.init();
 
+    appPtr.init() catch |err| {
+        // Optional but highly recommended: Log the specific error.
+        std.log.err("Failed to initialize App: {s}", .{@errorName(err)});
+
+        // CRITICAL: Clean up the memory we allocated before failing.
+        allocator.destroy(appPtr);
+
+        // Return the C-style failure code that SDL expects.
+        return c.SDL_APP_FAILURE;
+    };
     // 3. Store it (cast to anyopaque to satisfy the C API)
     stateSlot.* = @ptrCast(appPtr);
     return sdlAppInit(appstate.?, @ptrCast(argv.?[0..@intCast(argc)])) catch |err| app_err.store(err);
@@ -97,7 +109,7 @@ fn sdlAppQuitC(appstate: ?*anyopaque, result: c.SDL_AppResult) callconv(.c) void
 }
 // END BLOCK Callbacks
 
-// Converts the return value of an SDL function to an error union.
+// Converts the varying return values of the SDL functions to a Zig error union.
 pub inline fn errify(value: anytype) error{SdlError}!switch (@typeInfo(@TypeOf(value))) {
     .bool => void,
     .pointer, .optional => @TypeOf(value.?),

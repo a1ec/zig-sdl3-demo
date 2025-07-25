@@ -10,10 +10,6 @@ var app_err: sdlGlue.ErrorStore = .{};
 const GameMenu = @import("menu.zig").GameMenu;
 const Game = @import("game.zig").Game;
 
-const textHeight: f32 = 10;
-const textWidth: f32 = 10;
-const linePad: f32 = 2;
-
 const AppState = enum {
     Menu,
     Game,
@@ -23,6 +19,9 @@ pub const App = struct {
     const Self = @This();
     const stateChangeMsg = "State: {any}  → {any}\n";
     const eventKeyMsg = "{any}: {s}\n";
+    pub const textHeight: f32 = 8;
+    pub const textWidth: f32 = 8;
+    pub const linePad: f32 = 2;
 
     state: AppState,
     renderer: *c.SDL_Renderer,
@@ -31,8 +30,8 @@ pub const App = struct {
     pixelBufferScale: f32,
     pixelBufferWidth: f32,
     pixelBufferHeight: f32,
-    window_w: i32,
-    window_h: i32,
+    windowWidth: i32,
+    windowHeight: i32,
     menu: GameMenu,
     game: Game,
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = GameMenu.sdlEventHandler,
@@ -52,8 +51,8 @@ pub const App = struct {
             .pixelBufferScale = pixelBufferScale,
             .pixelBufferWidth = pixelBufferWidth,
             .pixelBufferHeight = pixelBufferHeight,
-            .window_w = pixelBufferWidth * pixelBufferScale,
-            .window_h = pixelBufferHeight * pixelBufferScale,
+            .windowWidth = pixelBufferWidth * pixelBufferScale,
+            .windowHeight = pixelBufferHeight * pixelBufferScale,
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
         print("Game.init():\n", .{});
@@ -102,7 +101,7 @@ pub const App = struct {
 
     pub fn updateGfx(self: *Self) !void {
         _ = c.SDL_SetRenderTarget(self.renderer, self.pixelBuffer);
-        //try errify(c.SDL_SetRenderScale(self.renderer, self.pixelBufferScale, self.pixelBufferScale));
+        //try errify(c.SDL_SetRenderScale(self.renderer, self.gameScreenScale, self.gameScreenScale));
         switch (self.state) {
             AppState.Menu => {
                 try self.menu.draw(self.renderer);

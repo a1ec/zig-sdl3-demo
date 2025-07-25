@@ -3,6 +3,7 @@ const sdlGlue = @import("sdlglue.zig");
 const App = @import("app.zig").App;
 const print = std.debug.print;
 const errify = sdlGlue.errify;
+const gfx = @import("gfx.zig");
 
 // Assumes a cimports.zig file exists for SDL bindings
 const c = @import("cimports.zig").c;
@@ -20,6 +21,8 @@ pub const GameMenu = struct {
     pub const Item = enum(u8) {
         NewGame,
         ResumeGame,
+        Settings,
+        BallIt,
         ConfirmExit,
 
         /// Returns the display text for a menu item.
@@ -27,6 +30,8 @@ pub const GameMenu = struct {
             return switch (self) {
                 .NewGame => "Start",
                 .ResumeGame => "Resume",
+                .Settings => "Settings",
+                .BallIt => "Ball It!",
                 .ConfirmExit => "Exit",
             };
         }
@@ -94,7 +99,7 @@ pub const GameMenu = struct {
     /// - direction: -1 for up, +1 for down.
     pub fn moveSelection(self: *Self, step: isize) void {
         self.currentIndex += step;
-        self.currentIndex = @mod(self.currentIndex, 3); // TODO self.allItems.len);
+        self.currentIndex = @mod(self.currentIndex, Self.allItems.len); // TODO self.allItems.len);
     }
 
     /// Returns the currently selected menu item enum.
@@ -107,7 +112,9 @@ pub const GameMenu = struct {
         const textHeight: f32 = 8;
         //const textWidth: f32 = 10;
         const linePadding: f32 = 0;
-        var fillColour: u8 = 0x00;
+        var textOpacity: u8 = 0xff;
+        var bgColour: u8 = 0x00;
+        var bgOpacity: u8 = 0xff;
         var menuRect: c.SDL_FRect = .{
             .x = self.x,
             .y = self.y,
@@ -116,13 +123,16 @@ pub const GameMenu = struct {
         };
 
         for (Self.allItems, 0..) |item, i| {
-            const isSelected = if (self.currentIndex == i) true else false;
+            const isSelected = self.currentIndex == i;
             const index: f32 = @floatFromInt(i);
-            fillColour = if (isSelected) 0xaa else 0xff;
-            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, fillColour, fillColour));
-            _ = try errify(c.SDL_RenderFillRect(renderer, &menuRect));
-            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x22, 0xff));
-            _ = try errify(c.SDL_RenderDebugText(renderer, self.x, self.y + index * textHeight + linePadding, item.label()));
+            textOpacity = if (isSelected) 0xff else 0xff / 16;
+            bgColour = if (isSelected) 0xff else 0x00;
+            bgOpacity = if (isSelected) 0xff else 0xff / 16;
+            try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
+            try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, bgColour, bgOpacity));
+            try errify(c.SDL_RenderFillRect(renderer, &menuRect));
+            try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, textOpacity));
+            try gfx.drawText(renderer, self.x, self.y + index * textHeight + linePadding, "{s}", .{item.label()});
             menuRect.y += textHeight + linePadding;
         }
         //return c.SDL_APP_CONTINUE;
