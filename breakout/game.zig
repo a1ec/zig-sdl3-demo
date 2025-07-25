@@ -7,6 +7,7 @@ const App = app_.App;
 const print = std.debug.print;
 const gfx = @import("gfx.zig");
 const entity = @import("entity.zig");
+const Point = @import("Point.zig");
 
 pub const Game = struct {
     const Self = @This();
@@ -78,8 +79,6 @@ pub const Game = struct {
         return c.SDL_APP_CONTINUE;
     }
 
-    const Point = struct { x: f32 = 0, y: f32 = 0 };
-
     pub fn drawPlayerShip(self: *Self, renderer: *c.SDL_Renderer) !void {
         const destRect = c.SDL_FRect{
             .x = self.player_ship.x - (16 / 2.0),
@@ -95,11 +94,23 @@ pub const Game = struct {
         ));
     }
 
+    var parabola_points = init: {
+        var initial_value: [320]c.SDL_FPoint = undefined;
+        for (&initial_value, 0..) |*pt, i| {
+            pt.* = c.SDL_FPoint{
+                .x = i,
+                .y = i * i / 480,
+            };
+        }
+        break :init initial_value;
+    };
+
     pub fn drawNoPauseCheck(self: *Self, renderer: *c.SDL_Renderer) !void {
         var floatx: f32 = 0;
         var floaty: f32 = 0;
         var mousePos: Point = .{ .x = 0, .y = 0 };
 
+        //const parabola_points = generate240Points();
         // mouse co-ordinates
         mousePos = getMousePosition(&floatx, &floaty, self.app.pixel_buffer_scale);
         const posX = @trunc(mousePos.x);
@@ -113,7 +124,8 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
 
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 4));
-        try gfx.drawDebugTextChars(renderer, self.app, &self.text_bytes);
+        // try gfx.drawDebugTextChars(renderer, self.app, &self.text_bytes);
+
         // with a black background, nice specular highlight effect on non-black characters
         // c.SDL_BLENDMODE_MUL on 0.75 white & 0.25 white
         //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
@@ -124,6 +136,14 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));
 
+        //try gfx.drawPoints(renderer, parabola_points);
+        // draw a parabolic curve
+        for (0..(parabola_points.len - 1)) |i| {
+            const p1 = parabola_points[i];
+            const p2 = parabola_points[i + 1];
+            _ = c.SDL_RenderLine(renderer, p1.x, p1.y, p2.x, p2.y);
+        }
+        _ = c.SDL_RenderPoints(renderer, &parabola_points, parabola_points.len);
         if (self.is_grid_shown) {
             gfx.drawGrid(renderer, -1, -1, self.app.pixel_buffer_width, self.app.pixel_buffer_height, App.text_width, App.text_height);
         }

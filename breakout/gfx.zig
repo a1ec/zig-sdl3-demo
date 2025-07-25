@@ -1,6 +1,8 @@
 const std = @import("std");
 const c = @import("cimports.zig").c;
 const App = @import("app.zig").App;
+const Point = @import("Point.zig");
+const errify = @import("sdlglue.zig").errify;
 
 pub inline fn drawLineHorizontal(renderer: *c.SDL_Renderer, y: f32, w: f32) void {
     _ = c.SDL_RenderLine(renderer, 0, y, w, y);
@@ -74,4 +76,9 @@ pub fn drawDebugTextChars(renderer: *c.SDL_Renderer, app: *App, bytes: []const u
         try drawRawBytes(renderer, 0, @as(f32, @floatFromInt(line)) * App.text_height + yOffset, bytes[charOffset + maxCharsPerLine * line ..]);
         line += 1;
     }
+}
+
+pub fn drawPoints(renderer: *c.SDL_Renderer, points: *c.SDL_FPoint) !void {
+    _ = try errify(c.SDL_SetRenderDrawColor(renderer, 255, 255, 255, c.SDL_ALPHA_OPAQUE));
+    _ = try c.SDL_RenderPoints(renderer, points, c.SDL_arraysize(points));
 }

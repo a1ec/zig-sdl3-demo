@@ -37,6 +37,18 @@ pub const GameMenu = struct {
         }
     };
 
+    /// A compile-time slice of all available menu items.
+    pub const all_items = std.enums.values(Item);
+
+    pub fn getMaxItemStringLength() usize {
+        var len: usize = 0;
+        for (Self.all_items) |item| {
+            const label_ptr = item.label();
+            len = @max(len, std.mem.len(label_ptr));
+        }
+        return len;
+    }
+
     pub fn init(app: *App) GameMenu {
         return GameMenu{ .app = app };
     }
@@ -92,36 +104,34 @@ pub const GameMenu = struct {
         return c.SDL_APP_CONTINUE;
     }
 
-    /// A compile-time slice of all available menu items.
-    pub const allItems = std.enums.values(Item);
-
     /// Moves the selection up or down, wrapping around the menu.
     /// - direction: -1 for up, +1 for down.
     pub fn moveSelection(self: *Self, step: isize) void {
         self.currentIndex += step;
-        self.currentIndex = @mod(self.currentIndex, Self.allItems.len); // TODO self.allItems.len);
+        self.currentIndex = @mod(self.currentIndex, Self.all_items.len);
     }
 
     /// Returns the currently selected menu item enum.
     pub fn getSelectedItem(self: *Self) Item {
-        // `allItems` is a constant on the type, not the instance.
-        return Self.allItems[@intCast(self.currentIndex)];
+        // `all_items` is a constant on the type, not the instance.
+        return Self.all_items[@intCast(self.currentIndex)];
     }
 
-    pub fn draw(self: Self, renderer: *c.SDL_Renderer) !void {
+    pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {
         var textOpacity: u8 = 0xff;
         var bgColour: u8 = 0x00;
         var bgOpacity: u8 = 0xff;
+
         const text_height = App.text_height;
         const text_line_pad = App.text_line_pad;
         var menuRect: c.SDL_FRect = .{
             .x = self.x,
             .y = self.y,
-            .w = self.app.pixel_buffer_width / 2,
+            .w = @as(f32, @floatFromInt(Self.getMaxItemStringLength())) * App.text_width,
             .h = App.text_height,
         };
 
-        for (Self.allItems, 0..) |item, i| {
+        for (Self.all_items, 0..) |item, i| {
             const isSelected = self.currentIndex == i;
             const index: f32 = @floatFromInt(i);
             textOpacity = if (isSelected) 0xff else 0xff / 16;

@@ -41,9 +41,9 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     _ = c.SDL_SetTextureScaleMode(app.*.pixel_buffer, c.SDL_SCALEMODE_NEAREST);
     //try c.SDL_SetRenderTarget(app.*.renderer, app.*.pixel_buffer);
     try errify(c.SDL_SetRenderScale(app.*.renderer, app.*.pixel_buffer_scale, app.*.pixel_buffer_scale));
-    try errify(c.SDL_SetRenderDrawBlendMode(app.*.renderer, c.SDL_BLENDMODE_BLEND));
     try errify(c.SDL_SetRenderDrawColor(app.*.renderer, 0x00, 0x00, 0x00, 0xff));
     try errify(c.SDL_RenderClear(app.*.renderer));
+    try errify(c.SDL_SetRenderDrawBlendMode(app.*.renderer, c.SDL_BLENDMODE_BLEND));
     return c.SDL_APP_CONTINUE;
 }
 
