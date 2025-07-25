@@ -118,10 +118,10 @@ pub const GameMenu = struct {
         for (Self.allItems, 0..) |item, i| {
             const isSelected = if (self.currentIndex == i) true else false;
             const index: f32 = @floatFromInt(i);
-            fillColour = if (isSelected) 0xaa else 0xff;
-            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, fillColour, fillColour));
+            fillColour = if (isSelected) 0xff else 0x00;
+            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, fillColour, 0xff));
             _ = try errify(c.SDL_RenderFillRect(renderer, &menuRect));
-            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x22, 0xff));
+            _ = try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff));
             _ = try errify(c.SDL_RenderDebugText(renderer, self.x, self.y + index * textHeight + linePadding, item.label()));
             menuRect.y += textHeight + linePadding;
         }

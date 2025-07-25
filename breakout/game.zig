@@ -19,7 +19,7 @@ pub const Game = struct {
     app: *App = undefined,
     playerShip: ?entity.PlayerShip,
     showGrid: bool = true,
-    showMousePosition: bool = false,
+    showMousePosition: bool = true,
     framesDrawn: u32 = 0,
     const buffer_width = 320;
     const buffer_height = 240;
