@@ -10,10 +10,6 @@ var app_err: sdlGlue.ErrorStore = .{};
 const GameMenu = @import("menu.zig").GameMenu;
 const Game = @import("game.zig").Game;
 
-const textHeight: f32 = 10;
-const textWidth: f32 = 10;
-const linePad: f32 = 2;
-
 const AppState = enum {
     Menu,
     Game,
@@ -23,6 +19,9 @@ pub const App = struct {
     const Self = @This();
     const stateChangeMsg = "State: {any}  → {any}\n";
     const eventKeyMsg = "{any}: {s}\n";
+    pub const textHeight: f32 = 8;
+    pub const textWidth: f32 = 8;
+    pub const linePad: f32 = 2;
 
     state: AppState,
     renderer: *c.SDL_Renderer,

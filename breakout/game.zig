@@ -2,7 +2,8 @@ const c = @import("cimports.zig").c;
 const sdlGlue = @import("sdlglue.zig");
 const errify = sdlGlue.errify;
 const std = @import("std");
-const App = @import("app.zig").App;
+const app_ = @import("app.zig");
+const App = app_.App;
 const print = std.debug.print;
 const gfx = @import("gfx.zig");
 const entity = @import("entity.zig");
@@ -112,12 +113,11 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
 
         // draw all debug text characters
-        var line: u8 = 1;
-        const textHeight = 8;
-        const textWidth = 8;
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 4));
-        while (line < 8) {
-            try errify(c.SDL_RenderDebugText(renderer, 0, @as(f32, @floatFromInt(line * textHeight)), &self.textBytes[40 * (line - 1)])); // .. 40 * line]));
+        const maxCharsPerLine = @as(usize, @intFromFloat(self.app.pixelBufferWidth / App.textWidth));
+        var line: usize = 1;
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 4));
+        while (line < self.textBytes.len / maxCharsPerLine) {
+            try gfx.drawRawBytes(renderer, 0, @as(f32, @floatFromInt(line)) * App.textHeight, self.textBytes[maxCharsPerLine * (line - 1) ..]); // .. 40 * line]));
             line += 1;
         }
         // with a black background, nice specular highlight effect on non-black characters
@@ -131,7 +131,7 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));
 
         if (self.showGrid) {
-            gfx.drawGrid(-1, -1, self.app.pixelBufferWidth, self.app.pixelBufferHeight, textWidth, textHeight, renderer);
+            gfx.drawGrid(-1, -1, self.app.pixelBufferWidth, self.app.pixelBufferHeight, App.textWidth, App.textHeight, renderer);
         }
         //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
         gfx.drawCrossHairsFullScreen(posX, posY, floatW, floatH, renderer);
