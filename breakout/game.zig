@@ -107,7 +107,7 @@ pub const Game = struct {
             line += 1;
         }
         // mouse co-ordinates
-        mousePos = getMousePosition(&floatx, &floaty, self.app.gameScreenScale);
+        mousePos = getMousePosition(&floatx, &floaty, self.app.pixelBufferScale);
         const intX = @trunc(mousePos.x);
         const intY = @trunc(mousePos.y);
         const floatW = @as(f32, @floatFromInt(self.app.window_w));

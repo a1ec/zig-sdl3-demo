@@ -28,19 +28,19 @@ pub const App = struct {
     renderer: *c.SDL_Renderer,
     window: *c.SDL_Window,
     pixelBuffer: *c.SDL_Texture,
-    gameScreenScale: f32,
-    gameScreenBufferWidth: f32,
-    gameScreenBufferHeight: f32,
+    pixelBufferScale: f32,
+    pixelBufferWidth: f32,
+    pixelBufferHeight: f32,
     window_w: i32,
     window_h: i32,
     menu: GameMenu,
     game: Game,
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = GameMenu.sdlEventHandler,
 
-    pub fn init(self: *App) void {
-        const buffer_w = 320;
-        const buffer_h = 240;
-        const scale = 3;
+    pub fn init(self: *App) !void {
+        const pixelBufferScale = 3;
+        const pixelBufferWidth = 320;
+        const pixelBufferHeight = 240;
 
         self.* = .{
             .state = AppState.Menu,
@@ -49,14 +49,17 @@ pub const App = struct {
             .renderer = undefined,
             .window = undefined,
             .pixelBuffer = undefined,
-            .gameScreenScale = scale,
-            .gameScreenBufferWidth = buffer_w,
-            .gameScreenBufferHeight = buffer_h,
-            .window_w = buffer_w * @as(f32, @floatFromInt(scale)),
-            .window_h = buffer_h * @as(f32, @floatFromInt(scale)),
+            .pixelBufferScale = pixelBufferScale,
+            .pixelBufferWidth = pixelBufferWidth,
+            .pixelBufferHeight = pixelBufferHeight,
+            .window_w = pixelBufferWidth * pixelBufferScale,
+            .window_h = pixelBufferHeight * pixelBufferScale,
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
-        self.game = Game.init(self);
+        print("Game.init():\n", .{});
+        self.game = try Game.init(self);
+
+        print("GameMenu.init():\n", .{});
         self.menu = GameMenu.init(self);
     }
 
@@ -99,7 +102,7 @@ pub const App = struct {
 
     pub fn updateGfx(self: *Self) !void {
         _ = c.SDL_SetRenderTarget(self.renderer, self.pixelBuffer);
-        //try errify(c.SDL_SetRenderScale(self.renderer, self.gameScreenScale, self.gameScreenScale));
+        //try errify(c.SDL_SetRenderScale(self.renderer, self.pixelBufferScale, self.pixelBufferScale));
         switch (self.state) {
             AppState.Menu => {
                 try self.menu.draw(self.renderer);
