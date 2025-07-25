@@ -2,36 +2,36 @@ const std = @import("std");
 const c = @import("cimports.zig").c;
 const App = @import("app.zig").App;
 
-pub inline fn drawLineHorizontal(y: f32, w: f32, renderer: *c.SDL_Renderer) void {
+pub inline fn drawLineHorizontal(renderer: *c.SDL_Renderer, y: f32, w: f32) void {
     _ = c.SDL_RenderLine(renderer, 0, y, w, y);
 }
 
-pub inline fn drawLineVertical(x: f32, h: f32, renderer: *c.SDL_Renderer) void {
+pub inline fn drawLineVertical(renderer: *c.SDL_Renderer, x: f32, h: f32) void {
     _ = c.SDL_RenderLine(renderer, x, 0, x, h);
 }
 
-pub fn drawCrossHairsFullScreen(x: f32, y: f32, w: f32, h: f32, renderer: *c.SDL_Renderer) void {
-    drawLineHorizontal(y, w, renderer);
-    drawLineVertical(x, h, renderer);
+pub fn drawCrossHairsFullScreen(renderer: *c.SDL_Renderer, x: f32, y: f32, w: f32, h: f32) void {
+    drawLineHorizontal(renderer, y, w);
+    drawLineVertical(renderer, x, h);
 }
 
-pub fn drawCrossHairs(x: f32, y: f32, r: f32, renderer: *c.SDL_Renderer) void {
+pub fn drawCrossHairs(renderer: *c.SDL_Renderer, x: f32, y: f32, r: f32) void {
     _ = c.SDL_RenderLine(renderer, x - r, y, x + r, y);
     _ = c.SDL_RenderLine(renderer, x, y - r, x, y + r);
 }
 
-pub fn drawGrid(x: f32, y: f32, w: f32, h: f32, divX: f32, divY: f32, renderer: *c.SDL_Renderer) void {
-    var cursorX: f32 = 0;
-    var cursorY: f32 = 0;
+pub fn drawGrid(renderer: *c.SDL_Renderer, x: f32, y: f32, w: f32, h: f32, pixels_per_div_x: f32, pixels_per_div_y: f32) void {
+    var cursor_x: f32 = 0;
+    var cursor_y: f32 = 0;
     //draw horizontals
-    while (cursorY <= h) {
-        drawLineHorizontal(cursorY + y, w, renderer);
-        cursorY += divY;
+    while (cursor_y <= h) {
+        drawLineHorizontal(renderer, cursor_y + y, w);
+        cursor_y += pixels_per_div_y;
     }
-    cursorY = 0;
-    while (cursorX <= w) {
-        drawLineVertical(cursorX + x, h, renderer);
-        cursorX += divX;
+    cursor_y = 0;
+    while (cursor_x <= w) {
+        drawLineVertical(renderer, cursor_x + x, h);
+        cursor_x += pixels_per_div_x;
     }
 }
 
@@ -64,14 +64,14 @@ pub fn drawRawBytes(renderer: *c.SDL_Renderer, x: f32, y: f32, bytes: []const u8
 
 pub fn drawDebugTextChars(renderer: *c.SDL_Renderer, app: *App, bytes: []const u8) !void {
     // draw all debug text characters
-    const maxCharsPerLine = @as(usize, @intFromFloat(app.pixelBufferWidth / App.textWidth));
+    const maxCharsPerLine = @as(usize, @intFromFloat(app.pixel_buffer_width / App.text_width));
     //const maxCharsPerLine = 2;
     const numLines = bytes.len / maxCharsPerLine;
-    const yOffset = app.pixelBufferHeight - (@trunc(@as(f32, @floatFromInt(numLines))) * App.textHeight);
+    const yOffset = app.pixel_buffer_height - (@trunc(@as(f32, @floatFromInt(numLines))) * App.text_height);
     var line: usize = 0;
     const charOffset = 32; //first 32 characters blank
     while (line < numLines) {
-        try drawRawBytes(renderer, 0, @as(f32, @floatFromInt(line)) * App.textHeight + yOffset, bytes[charOffset + maxCharsPerLine * line ..]);
+        try drawRawBytes(renderer, 0, @as(f32, @floatFromInt(line)) * App.text_height + yOffset, bytes[charOffset + maxCharsPerLine * line ..]);
         line += 1;
     }
 }

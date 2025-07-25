@@ -15,33 +15,33 @@ pub const Game = struct {
         Running,
     };
 
-    textBytes: [256]u8 = entity.generateCharacterBytes(),
+    text_bytes: [256]u8 = entity.generateCharacterBytes(),
     state: State = State.Running,
     app: *App = undefined,
-    playerShip: ?entity.PlayerShip,
-    showGrid: bool = true,
-    showMousePosition: bool = true,
-    framesDrawn: u32 = 0,
+    player_ship: ?entity.PlayerShip,
+    is_grid_shown: bool = true,
+    is_mouse_pos_shown: bool = true,
+    frames_drawn: u32 = 0,
     const buffer_width = 320;
     const buffer_height = 240;
 
     pub fn init(app: *App) !Game {
         //print("playerSHip creation:\n", .{});
-        //const playerShip = try entity.PlayerShip.init(app.renderer);
-        const playerShip = null;
+        //const player_ship = try entity.PlayerShip.init(app.renderer);
+        const player_ship = null;
         //
         //print("playerSHip init OK!:\n", .{});
         return Game{
             .app = app,
-            .playerShip = playerShip,
+            .player_ship = player_ship,
         };
     }
 
     pub fn toggleGrid(self: *Self) void {
-        self.showGrid = ~self.showGrid;
+        self.is_grid_shown = ~self.is_grid_shown;
     }
     pub fn toggleMousePosition(self: *Self) void {
-        self.showMousePosition = ~self.showMousePosition;
+        self.is_mouse_pos_shown = ~self.is_mouse_pos_shown;
     }
 
     pub fn sdlEventHandler(app: *App, event: *c.SDL_Event) !c.SDL_AppResult {
@@ -82,14 +82,14 @@ pub const Game = struct {
 
     pub fn drawPlayerShip(self: *Self, renderer: *c.SDL_Renderer) !void {
         const destRect = c.SDL_FRect{
-            .x = self.playerShip.x - (16 / 2.0),
-            .y = self.playerShip.y - (24 / 2.0),
+            .x = self.player_ship.x - (16 / 2.0),
+            .y = self.player_ship.y - (24 / 2.0),
             .w = 16,
             .h = 24,
         };
         try errify(c.SDL_RenderTexture(
             renderer,
-            self.playerShip.texture,
+            self.player_ship.texture,
             null, // srcrect: null to use the whole texture
             &destRect,
         ));
@@ -101,11 +101,11 @@ pub const Game = struct {
         var mousePos: Point = .{ .x = 0, .y = 0 };
 
         // mouse co-ordinates
-        mousePos = getMousePosition(&floatx, &floaty, self.app.pixelBufferScale);
+        mousePos = getMousePosition(&floatx, &floaty, self.app.pixel_buffer_scale);
         const posX = @trunc(mousePos.x);
         const posY = @trunc(mousePos.y);
-        const floatW = @as(f32, @floatFromInt(self.app.windowWidth));
-        const floatH = @as(f32, @floatFromInt(self.app.windowHeight));
+        const floatW = @as(f32, @floatFromInt(self.app.window_width));
+        const floatH = @as(f32, @floatFromInt(self.app.window_height));
 
         // Nice blue at 0,0,0xff/2
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff / 2, 0xff));
@@ -113,22 +113,22 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
 
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 4));
-        try gfx.drawDebugTextChars(renderer, self.app, &self.textBytes);
+        try gfx.drawDebugTextChars(renderer, self.app, &self.text_bytes);
         // with a black background, nice specular highlight effect on non-black characters
         // c.SDL_BLENDMODE_MUL on 0.75 white & 0.25 white
         //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
-        if (self.showMousePosition) {
+        if (self.is_mouse_pos_shown) {
             try gfx.drawFmtText(renderer, posX, posY, "{d},{d}", .{ posX, posY });
         }
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));
 
-        if (self.showGrid) {
-            gfx.drawGrid(-1, -1, self.app.pixelBufferWidth, self.app.pixelBufferHeight, App.textWidth, App.textHeight, renderer);
+        if (self.is_grid_shown) {
+            gfx.drawGrid(renderer, -1, -1, self.app.pixel_buffer_width, self.app.pixel_buffer_height, App.text_width, App.text_height);
         }
         //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
-        gfx.drawCrossHairsFullScreen(posX, posY, floatW, floatH, renderer);
+        gfx.drawCrossHairsFullScreen(renderer, posX, posY, floatW, floatH);
     }
 
     pub fn getMousePosition(x: *f32, y: *f32, scale: f32) Point {
@@ -139,7 +139,7 @@ pub const Game = struct {
     pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {
         _ = try self.drawNoPauseCheck(renderer);
         if (self.state == State.Running) {
-            self.framesDrawn += 1;
+            self.frames_drawn += 1;
         }
     }
 };

@@ -1,3 +1,5 @@
+const std = @import("std");
+const print = std.debug.print;
 const c = @import("cimports.zig").c;
 const errify = @import("sdlglue.zig").errify;
 
@@ -9,10 +11,10 @@ pub const PlayerShip = struct {
     y: f32 = 0,
     rotation: f64 = 0,
     texture: *c.SDL_Texture = undefined,
-    const model = [_]c.SDL_Vertex{
-        .{ .position = .{ .x = 0, .y = -12 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
-        .{ .position = .{ .x = -8, .y = 12 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
-        .{ .position = .{ .x = 8, .y = 12 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
+    const model = [_]c.SDL_Vertex{ // 0
+        .{ .position = .{ .x = 2, .y = 0 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
+        .{ .position = .{ .x = 0, .y = 12 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
+        .{ .position = .{ .x = 4, .y = 12 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
     };
 
     pub fn init(renderer: *c.SDL_Renderer) !PlayerShip {
@@ -25,14 +27,25 @@ pub const PlayerShip = struct {
 
 fn bakeGeometryTexture(renderer: *c.SDL_Renderer) !*c.SDL_Texture {
     // rasterise the geometry into a texture
-    const SHIP_TEXTURE_WIDTH = 16;
-    const SHIP_TEXTURE_HEIGHT = 24;
+    const SHIP_TEXTURE_WIDTH = 4;
+    const SHIP_TEXTURE_HEIGHT = 12;
 
+    //_ = c.SDL_ClearError();
     // Create a new texture that we can render to
-    const shipTexture = try errify(c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, SHIP_TEXTURE_WIDTH, SHIP_TEXTURE_HEIGHT));
-    try errify(c.SDL_SetTextureBlendMode(shipTexture, c.SDL_BLENDMODE_BLEND));
-
+    print("1 - CreateTexture:\n", .{});
+    const shipTexture = null;
+    shipTexture = try errify(c.SDL_CreateTexture(renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, SHIP_TEXTURE_WIDTH, SHIP_TEXTURE_HEIGHT));
+    if (shipTexture == null) {
+        const sdlError = c.SDL_GetError();
+        std.debug.print("SDL_CreateTexture failed: {s}\n", .{sdlError});
+        return error.SdlError;
+    } else {
+        //try errify(c.SDL_SetTextureBlendMode(shipTexture, c.SDL_BLENDMODE_BLEND));
+        print("2 - GetRenderTarget:\n", .{});
+    }
     const prevRenderTarget = try errify(c.SDL_GetRenderTarget(renderer));
+    print("3 - SetRenderTarget:\n", .{});
+
     try errify(c.SDL_SetRenderTarget(renderer, shipTexture));
     // Clear the texture with *transparent black*
     try errify(c.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0));

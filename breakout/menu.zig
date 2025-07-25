@@ -109,17 +109,16 @@ pub const GameMenu = struct {
     }
 
     pub fn draw(self: Self, renderer: *c.SDL_Renderer) !void {
-        const textHeight: f32 = 8;
-        //const textWidth: f32 = 10;
-        const linePadding: f32 = 0;
         var textOpacity: u8 = 0xff;
         var bgColour: u8 = 0x00;
         var bgOpacity: u8 = 0xff;
+        const text_height = App.text_height;
+        const text_line_pad = App.text_line_pad;
         var menuRect: c.SDL_FRect = .{
             .x = self.x,
             .y = self.y,
-            .w = 320,
-            .h = textHeight,
+            .w = self.app.pixel_buffer_width / 2,
+            .h = App.text_height,
         };
 
         for (Self.allItems, 0..) |item, i| {
@@ -132,8 +131,8 @@ pub const GameMenu = struct {
             try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, bgColour, bgOpacity));
             try errify(c.SDL_RenderFillRect(renderer, &menuRect));
             try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, textOpacity));
-            try gfx.drawFmtText(renderer, self.x, self.y + index * textHeight + linePadding, "{s}", .{item.label()});
-            menuRect.y += textHeight + linePadding;
+            try gfx.drawFmtText(renderer, self.x, self.y + index * App.text_height + App.text_line_pad, "{s}", .{item.label()});
+            menuRect.y += text_height + text_line_pad;
         }
         //return c.SDL_APP_CONTINUE;
     }

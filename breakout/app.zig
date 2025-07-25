@@ -17,29 +17,29 @@ const AppState = enum {
 
 pub const App = struct {
     const Self = @This();
-    const stateChangeMsg = "State: {any}  → {any}\n";
-    const eventKeyMsg = "{any}: {s}\n";
-    pub const textHeight: f32 = 8;
-    pub const textWidth: f32 = 8;
-    pub const linePad: f32 = 2;
+    const state_change_fmt = "State: {any}  → {any}\n";
+    const event_key_fmt = "{any}: {s}\n";
+    pub const text_height: f32 = 8;
+    pub const text_width: f32 = 8;
+    pub const text_line_pad: f32 = 0;
 
     state: AppState,
     renderer: *c.SDL_Renderer,
     window: *c.SDL_Window,
-    pixelBuffer: *c.SDL_Texture,
-    pixelBufferScale: f32,
-    pixelBufferWidth: f32,
-    pixelBufferHeight: f32,
-    windowWidth: i32,
-    windowHeight: i32,
+    pixel_buffer: *c.SDL_Texture,
+    pixel_buffer_scale: f32,
+    pixel_buffer_width: f32,
+    pixel_buffer_height: f32,
+    window_width: i32,
+    window_height: i32,
     menu: GameMenu,
     game: Game,
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = GameMenu.sdlEventHandler,
 
     pub fn init(self: *App) !void {
-        const pixelBufferScale = 3;
-        const pixelBufferWidth = 320;
-        const pixelBufferHeight = 240;
+        const pixel_buffer_scale = 3;
+        const pixel_buffer_width = 320;
+        const pixel_buffer_height = 240;
 
         self.* = .{
             .state = AppState.Menu,
@@ -47,12 +47,12 @@ pub const App = struct {
             .menu = undefined,
             .renderer = undefined,
             .window = undefined,
-            .pixelBuffer = undefined,
-            .pixelBufferScale = pixelBufferScale,
-            .pixelBufferWidth = pixelBufferWidth,
-            .pixelBufferHeight = pixelBufferHeight,
-            .windowWidth = pixelBufferWidth * pixelBufferScale,
-            .windowHeight = pixelBufferHeight * pixelBufferScale,
+            .pixel_buffer = undefined,
+            .pixel_buffer_scale = pixel_buffer_scale,
+            .pixel_buffer_width = pixel_buffer_width,
+            .pixel_buffer_height = pixel_buffer_height,
+            .window_width = pixel_buffer_width * pixel_buffer_scale,
+            .window_height = pixel_buffer_height * pixel_buffer_scale,
             .handleStateEvent = GameMenu.sdlEventHandler,
         };
         print("Game.init():\n", .{});
@@ -63,13 +63,13 @@ pub const App = struct {
     }
 
     pub fn printStateEventKey(self: *Self, event: *c.SDL_Event) void {
-        print(App.eventKeyMsg, .{ self.state, c.SDL_GetKeyName(event.key.key) });
+        print(App.event_key_fmt, .{ self.state, c.SDL_GetKeyName(event.key.key) });
     }
 
     pub fn setState(self: *Self, state: AppState) void {
         const oldState = self.state;
         self.state = state;
-        print(App.stateChangeMsg, .{ oldState, self.state });
+        print(App.state_change_fmt, .{ oldState, self.state });
     }
 
     pub fn enterGameState(self: *Self) !void {
@@ -100,8 +100,7 @@ pub const App = struct {
     }
 
     pub fn updateGfx(self: *Self) !void {
-        _ = c.SDL_SetRenderTarget(self.renderer, self.pixelBuffer);
-        //try errify(c.SDL_SetRenderScale(self.renderer, self.gameScreenScale, self.gameScreenScale));
+        _ = c.SDL_SetRenderTarget(self.renderer, self.pixel_buffer);
         switch (self.state) {
             AppState.Menu => {
                 try self.menu.draw(self.renderer);
@@ -111,7 +110,7 @@ pub const App = struct {
             },
         }
         _ = c.SDL_SetRenderTarget(self.renderer, null);
-        _ = c.SDL_RenderTexture(self.renderer, self.pixelBuffer, null, null);
+        _ = c.SDL_RenderTexture(self.renderer, self.pixel_buffer, null, null);
         try errify(c.SDL_RenderPresent(self.renderer));
     }
 };
