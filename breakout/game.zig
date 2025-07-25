@@ -112,20 +112,14 @@ pub const Game = struct {
         try errify(c.SDL_RenderClear(renderer));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
 
-        // draw all debug text characters
-        const maxCharsPerLine = @as(usize, @intFromFloat(self.app.pixelBufferWidth / App.textWidth));
-        var line: usize = 1;
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 4));
-        while (line < self.textBytes.len / maxCharsPerLine) {
-            try gfx.drawRawBytes(renderer, 0, @as(f32, @floatFromInt(line)) * App.textHeight, self.textBytes[maxCharsPerLine * (line - 1) ..]); // .. 40 * line]));
-            line += 1;
-        }
+        try gfx.drawDebugTextChars(renderer, self.app, &self.textBytes);
         // with a black background, nice specular highlight effect on non-black characters
         // c.SDL_BLENDMODE_MUL on 0.75 white & 0.25 white
         //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
         if (self.showMousePosition) {
-            try gfx.drawText(renderer, posX, posY, "{d},{d}", .{ posX, posY });
+            try gfx.drawFmtText(renderer, posX, posY, "{d},{d}", .{ posX, posY });
         }
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));

@@ -132,7 +132,7 @@ pub const GameMenu = struct {
             try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, bgColour, bgOpacity));
             try errify(c.SDL_RenderFillRect(renderer, &menuRect));
             try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, textOpacity));
-            try gfx.drawText(renderer, self.x, self.y + index * textHeight + linePadding, "{s}", .{item.label()});
+            try gfx.drawFmtText(renderer, self.x, self.y + index * textHeight + linePadding, "{s}", .{item.label()});
             menuRect.y += textHeight + linePadding;
         }
         //return c.SDL_APP_CONTINUE;

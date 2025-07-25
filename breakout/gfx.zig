@@ -1,5 +1,6 @@
 const std = @import("std");
 const c = @import("cimports.zig").c;
+const App = @import("app.zig").App;
 
 pub inline fn drawLineHorizontal(y: f32, w: f32, renderer: *c.SDL_Renderer) void {
     _ = c.SDL_RenderLine(renderer, 0, y, w, y);
@@ -34,7 +35,7 @@ pub fn drawGrid(x: f32, y: f32, w: f32, h: f32, divX: f32, divY: f32, renderer: 
     }
 }
 
-pub fn drawText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []const u8, args: anytype) !void {
+pub fn drawFmtText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []const u8, args: anytype) !void {
     var textBuffer: [257]u8 = undefined;
     // Use subslice to ensure buffer has at least 1 byte of free space for the null.
     const bufferShort = textBuffer[0 .. textBuffer.len - 1];
@@ -59,4 +60,18 @@ pub fn drawRawBytes(renderer: *c.SDL_Renderer, x: f32, y: f32, bytes: []const u8
 
     // Call the C function with our safe, null-terminated buffer.
     _ = c.SDL_RenderDebugText(renderer, x, y, &c_buffer[0]);
+}
+
+pub fn drawDebugTextChars(renderer: *c.SDL_Renderer, app: *App, bytes: []const u8) !void {
+    // draw all debug text characters
+    const maxCharsPerLine = @as(usize, @intFromFloat(app.pixelBufferWidth / App.textWidth));
+    //const maxCharsPerLine = 2;
+    const numLines = bytes.len / maxCharsPerLine;
+    const yOffset = app.pixelBufferHeight - (@trunc(@as(f32, @floatFromInt(numLines))) * App.textHeight);
+    var line: usize = 0;
+    const charOffset = 32; //first 32 characters blank
+    while (line < numLines) {
+        try drawRawBytes(renderer, 0, @as(f32, @floatFromInt(line)) * App.textHeight + yOffset, bytes[charOffset + maxCharsPerLine * line ..]);
+        line += 1;
+    }
 }
