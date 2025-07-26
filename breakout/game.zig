@@ -13,29 +13,20 @@ const Input = @import("Input.zig");
 
 pub const Game = struct {
     const Self = @This();
+
     pub const State = enum {
         Paused,
         Running,
     };
 
-    text_bytes: [256]u8 = entity.generateCharacterBytes(),
     state: State = State.Running,
     app: *App = undefined,
-    player_ship: ?entity.PlayerShip,
     is_grid_shown: bool = true,
     is_mouse_pos_shown: bool = true,
     frames_drawn: u32 = 0,
 
     pub fn init(app: *App) !Game {
-        //print("playerSHip creation:\n", .{});
-        //const player_ship = try entity.PlayerShip.init(app.renderer);
-        const player_ship = null;
-        //
-        //print("playerSHip init OK!:\n", .{});
-        return Game{
-            .app = app,
-            .player_ship = player_ship,
-        };
+        return Game{ .app = app };
     }
 
     pub fn toggleGrid(self: *Self) void {
@@ -77,21 +68,6 @@ pub const Game = struct {
         }
         //app.printStateEventKey(event);
         return c.SDL_APP_CONTINUE;
-    }
-
-    pub fn drawPlayerShip(self: *Self, renderer: *c.SDL_Renderer) !void {
-        const destRect = c.SDL_FRect{
-            .x = self.player_ship.x - (16 / 2.0),
-            .y = self.player_ship.y - (24 / 2.0),
-            .w = 16,
-            .h = 24,
-        };
-        try errify(c.SDL_RenderTexture(
-            renderer,
-            self.player_ship.texture,
-            null, // srcrect: null to use the whole texture
-            &destRect,
-        ));
     }
 
     pub fn drawNoPauseCheck(self: *Self, renderer: *c.SDL_Renderer) !void {
