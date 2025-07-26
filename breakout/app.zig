@@ -38,8 +38,8 @@ pub const App = struct {
 
     pub fn init(self: *App) !void {
         const pixel_buffer_scale = 3;
-        const pixel_buffer_width = 320;
-        const pixel_buffer_height = 240;
+        const pixel_buffer_width = 400;
+        const pixel_buffer_height = 300;
 
         self.* = .{
             .state = AppState.Menu,

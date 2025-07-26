@@ -5,10 +5,11 @@ const std = @import("std");
 const app_ = @import("app.zig");
 const App = app_.App;
 const print = std.debug.print;
-const gfx = @import("gfx.zig");
+const Gfx = @import("Gfx.zig");
 const entity = @import("entity.zig");
 const Point = @import("Point.zig");
 const Curve = @import("Curve.zig");
+const Input = @import("Input.zig");
 
 pub const Game = struct {
     const Self = @This();
@@ -24,8 +25,6 @@ pub const Game = struct {
     is_grid_shown: bool = true,
     is_mouse_pos_shown: bool = true,
     frames_drawn: u32 = 0,
-    const buffer_width = 320;
-    const buffer_height = 240;
 
     pub fn init(app: *App) !Game {
         //print("playerSHip creation:\n", .{});
@@ -95,20 +94,6 @@ pub const Game = struct {
         ));
     }
 
-    var old_parabola_points = init: {
-        var initial_value: [320]c.SDL_FPoint = undefined;
-        for (&initial_value, 0..) |*pt, i| {
-            const index = @as(f32, @floatFromInt(i));
-            const x = index;
-            const y = -(index * index) / 420 + 240;
-            pt.* = c.SDL_FPoint{
-                .x = x,
-                .y = y,
-            };
-        }
-        break :init initial_value;
-    };
-
     pub fn drawNoPauseCheck(self: *Self, renderer: *c.SDL_Renderer) !void {
         var floatx: f32 = 0;
         var floaty: f32 = 0;
@@ -116,31 +101,27 @@ pub const Game = struct {
 
         //const graph_points = generate240Points();
         // mouse co-ordinates
-        mousePos = getMousePosition(&floatx, &floaty, self.app.pixel_buffer_scale);
+        mousePos = Input.getMousePosition(&floatx, &floaty, self.app.pixel_buffer_scale);
         const posX = @trunc(mousePos.x);
         const posY = @trunc(mousePos.y);
         const floatW = @as(f32, @floatFromInt(self.app.window_width));
         const floatH = @as(f32, @floatFromInt(self.app.window_height));
 
-        //var graph_points = Curve.generatePoints(320, Curve.sine(x: f32, a: f32, b: f32, c_: f32))
-
         // Nice blue at 0,0,0xff/2
         try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff / 2, 0xff));
         try errify(c.SDL_RenderClear(renderer));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
-
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 4));
-        // try gfx.drawDebugTextChars(renderer, self.app, &self.text_bytes);
 
         // with a black background, nice specular highlight effect on non-black characters
         // c.SDL_BLENDMODE_MUL on 0.75 white & 0.25 white
         //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff * 3 / 5));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));
         if (self.is_mouse_pos_shown) {
-            try gfx.drawFmtText(renderer, posX, posY, "{d},{d}", .{ posX, posY });
+            try Gfx.drawFmtText(renderer, posX, posY, "{d},{d}", .{ posX, posY });
         }
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 3));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff * 1 / 2, 0xff * 1 / 2, 0xff, 0xff));
 
         // draw a parabolic curve
         const my_parabola_config = Curve.ParabolaContext{
@@ -149,9 +130,11 @@ pub const Game = struct {
             .c_ = 0,
         };
 
-        var graph_points = Curve.generatePointsWithContext(320, &my_parabola_config, // Pass a pointer to the context struct
+        var graph_points = Curve.generatePointsWithContext(400, &my_parabola_config, // Pass a pointer to the context struct
             Curve.ParabolaContext.calc // Pass the function
         );
+
+        Gfx.drawCurve(renderer, &graph_points);
 
         const my_sine_config = Curve.SineWaveContext{
             .amplitude = 25.0 * posY / 50,
@@ -159,28 +142,21 @@ pub const Game = struct {
             .y_offset = 120.0,
         };
 
-        graph_points = Curve.generatePointsWithContext(320, &my_sine_config, // Pass a pointer to the context struct
+        graph_points = Curve.generatePointsWithContext(400, &my_sine_config, // Pass a pointer to the context struct
+            //graph_points = Curve.generatePointsWithContext(self.app.pixel_buffer_width, &my_sine_config, // Pass a pointer to the context struct
             Curve.SineWaveContext.calc // Pass the function
         );
 
-        for (0..(graph_points.len - 1)) |i| {
-            const p1 = graph_points[i];
-            const p2 = graph_points[i + 1];
-            _ = c.SDL_RenderLine(renderer, p1.x, p1.y, p2.x, p2.y);
-        }
+        Gfx.drawCurve(renderer, &graph_points);
 
         //_ = c.SDL_RenderPoints(renderer, &graph_points, graph_points.len);
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 8));
         if (self.is_grid_shown) {
-            gfx.drawGrid(renderer, -1, -1, self.app.pixel_buffer_width, self.app.pixel_buffer_height, App.text_width, App.text_height);
+            Gfx.drawGrid(renderer, -1, -1, self.app.pixel_buffer_width, self.app.pixel_buffer_height, App.text_width, App.text_height);
         }
-        //try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_MUL));
-        gfx.drawCrossHairsFullScreen(renderer, posX, posY, floatW, floatH);
-    }
 
-    pub fn getMousePosition(x: *f32, y: *f32, scale: f32) Point {
-        _ = c.SDL_GetMouseState(x, y);
-        return .{ .x = x.* / scale, .y = y.* / scale };
+        Gfx.drawCrossHairsFullScreen(renderer, posX, posY, floatW, floatH);
     }
 
     pub fn draw(self: *Self, renderer: *c.SDL_Renderer) !void {

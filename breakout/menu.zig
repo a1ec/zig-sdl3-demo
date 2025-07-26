@@ -3,7 +3,7 @@ const sdlGlue = @import("sdlglue.zig");
 const App = @import("app.zig").App;
 const print = std.debug.print;
 const errify = sdlGlue.errify;
-const gfx = @import("gfx.zig");
+const gfx = @import("Gfx.zig");
 
 // Assumes a cimports.zig file exists for SDL bindings
 const c = @import("cimports.zig").c;

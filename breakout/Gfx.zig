@@ -78,7 +78,15 @@ pub fn drawDebugTextChars(renderer: *c.SDL_Renderer, app: *App, bytes: []const u
     }
 }
 
-pub fn drawPoints(renderer: *c.SDL_Renderer, points: *c.SDL_FPoint) !void {
+pub fn drawCurve(renderer: *c.SDL_Renderer, graph_points: []const c.SDL_FPoint) void {
+    for (0..(graph_points.len - 1)) |i| {
+        const p1 = graph_points[i];
+        const p2 = graph_points[i + 1];
+        _ = c.SDL_RenderLine(renderer, p1.x, p1.y, p2.x, p2.y);
+    }
+}
+
+pub fn drawPoints(renderer: *c.SDL_Renderer, points: []const c.SDL_FPoint) !void {
     _ = try errify(c.SDL_SetRenderDrawColor(renderer, 255, 255, 255, c.SDL_ALPHA_OPAQUE));
     _ = try c.SDL_RenderPoints(renderer, points, c.SDL_arraysize(points));
 }
