@@ -37,28 +37,31 @@ pub const App = struct {
     handleStateEvent: *const fn (self: *Self, event: *c.SDL_Event) anyerror!c.SDL_AppResult = GameMenu.sdlEventHandler,
 
     pub fn init(self: *App) !void {
-        const pixel_buffer_scale = 3;
-        const pixel_buffer_width = 400;
-        const pixel_buffer_height = 300;
+        // 1. Define your constants.
+        const pixel_buffer_scale: f32 = 3.0;
+        const pixel_buffer_width: f32 = 400;
+        const pixel_buffer_height: f32 = 300;
 
-        self.* = .{
-            .state = AppState.Menu,
-            .game = undefined,
-            .menu = undefined,
-            .renderer = undefined,
-            .window = undefined,
-            .pixel_buffer = undefined,
-            .pixel_buffer_scale = pixel_buffer_scale,
-            .pixel_buffer_width = pixel_buffer_width,
-            .pixel_buffer_height = pixel_buffer_height,
-            .window_width = pixel_buffer_width * pixel_buffer_scale,
-            .window_height = pixel_buffer_height * pixel_buffer_scale,
-            .handleStateEvent = GameMenu.sdlEventHandler,
-        };
-        print("Game.init():\n", .{});
-        self.game = try Game.init(self);
+        // 2. Initialize fields one by one. This is the robust way.
+        self.state = AppState.Menu;
 
-        print("GameMenu.init():\n", .{});
+        // Renderer, Window, etc. will be initialized by your SDL setup functions.
+        // They start as undefined, which is fine before they are set.
+        self.renderer = undefined;
+        self.window = undefined;
+        self.pixel_buffer = undefined;
+
+        self.pixel_buffer_scale = pixel_buffer_scale;
+        self.pixel_buffer_width = pixel_buffer_width;
+        self.pixel_buffer_height = pixel_buffer_height;
+        self.window_width = @intFromFloat(pixel_buffer_width * pixel_buffer_scale);
+        self.window_height = @intFromFloat(pixel_buffer_height * pixel_buffer_scale);
+        self.handleStateEvent = GameMenu.sdlEventHandler;
+
+        //const gpa = std.heap.page_allocator;
+        //print("Game.init():\n", .{});
+        try self.game.init(self);
+        //print("GameMenu.init():\n", .{});
         self.menu = GameMenu.init(self);
     }
 

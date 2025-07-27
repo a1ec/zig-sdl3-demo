@@ -38,7 +38,7 @@ pub fn sine(x: f32, a: f32, b: f32, c_: f32) f32 {
     return y_offset + (amplitude * std.math.sin(x * frequency));
 }
 
-pub fn generatePointsWithContext(
+pub fn generatePointsArrayFromContext(
     num_points: comptime_int,
     context: *const anyopaque,
     y_calculator: fn (ctx: *const anyopaque, x: f32) f32, // <-- This is the function pointer type
@@ -55,4 +55,25 @@ pub fn generatePointsWithContext(
         };
     }
     return points;
+}
+
+pub fn generatePointsSliceFromContext(
+    allocator: std.mem.Allocator,
+    num_points: usize,
+    context: *const anyopaque,
+    y_calculator: fn (ctx: *const anyopaque, x: f32) f32, // <-- This is the function pointer type
+) ![]c.SDL_FPoint {
+    const points_slice = try allocator.alloc(c.SDL_FPoint, num_points);
+    // Use `errdefer` to free the memory if something goes wrong *inside* this
+    // function after allocation but before it successfully returns.
+    errdefer allocator.free(points_slice);
+    for (points_slice, 0..) |*pt, i| {
+        // Cast the index to a float to pass to our calculator function
+        const x = @as(f32, @floatFromInt(i));
+        pt.* = c.SDL_FPoint{
+            .x = x,
+            .y = y_calculator(context, x), // <-- Here we call the passed-in function
+        };
+    }
+    return points_slice;
 }

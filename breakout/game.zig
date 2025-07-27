@@ -14,19 +14,32 @@ const Input = @import("Input.zig");
 pub const Game = struct {
     const Self = @This();
 
-    pub const State = enum {
-        Paused,
-        Running,
-    };
+    const memory_buffer_size = 1 * 1024 * 1024;
 
-    state: State = State.Running,
+    pub const State = enum { Paused, Running };
+
+    state: State = .Running,
     app: *App = undefined,
     is_grid_shown: bool = true,
     is_mouse_pos_shown: bool = true,
     frames_drawn: u32 = 0,
 
-    pub fn init(app: *App) !Game {
-        return Game{ .app = app };
+    buffer: [memory_buffer_size]u8 = undefined,
+    fba: std.heap.FixedBufferAllocator = undefined,
+    allocator: std.mem.Allocator,
+
+    pub fn init(self: *Self, app: *App) !void {
+        self.state = .Running;
+        self.app = app;
+        self.is_grid_shown = true;
+        self.is_mouse_pos_shown = true;
+        self.frames_drawn = 0;
+        self.fba = std.heap.FixedBufferAllocator.init(&self.buffer);
+        self.allocator = self.fba.allocator();
+    }
+
+    pub fn deinit(self: *Self) void {
+        _ = self;
     }
 
     pub fn toggleGrid(self: *Self) void {
@@ -106,7 +119,8 @@ pub const Game = struct {
             .c_ = 0,
         };
 
-        var graph_points = Curve.generatePointsWithContext(400, &my_parabola_config, // Pass a pointer to the context struct
+        const pixel_buffer_width_usize = @as(usize, @intFromFloat(self.app.pixel_buffer_width));
+        var graph_points = Curve.generatePointsArrayFromContext(400, &my_parabola_config, // Pass a pointer to the context struct
             Curve.ParabolaContext.calc // Pass the function
         );
 
@@ -118,12 +132,13 @@ pub const Game = struct {
             .y_offset = 120.0,
         };
 
-        graph_points = Curve.generatePointsWithContext(400, &my_sine_config, // Pass a pointer to the context struct
-            //graph_points = Curve.generatePointsWithContext(self.app.pixel_buffer_width, &my_sine_config, // Pass a pointer to the context struct
+        const graph_points_slice = try Curve.generatePointsSliceFromContext(self.allocator, pixel_buffer_width_usize, &my_sine_config, // Pass a pointer to the context struct
+            //graph_points = Curve.generatePointsArrayFromContext(self.app.pixel_buffer_width, &my_sine_config, // Pass a pointer to the context struct
             Curve.SineWaveContext.calc // Pass the function
         );
+        defer self.allocator.free(graph_points_slice);
 
-        Gfx.drawCurve(renderer, &graph_points);
+        Gfx.drawCurve(renderer, graph_points_slice);
 
         //_ = c.SDL_RenderPoints(renderer, &graph_points, graph_points.len);
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));

@@ -56,6 +56,7 @@ fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
         return;
     }
     const appPtr: *App = @alignCast(@ptrCast(appState.?));
+    appPtr.game.deinit();
     c.SDL_DestroyRenderer(appPtr.renderer);
     c.SDL_DestroyWindow(appPtr.window);
     // run your cleanup
