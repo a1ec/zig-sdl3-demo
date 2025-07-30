@@ -90,3 +90,26 @@ pub fn drawPoints(renderer: *c.SDL_Renderer, points: []const c.SDL_FPoint) !void
     _ = try errify(c.SDL_SetRenderDrawColor(renderer, 255, 255, 255, c.SDL_ALPHA_OPAQUE));
     _ = try c.SDL_RenderPoints(renderer, points, c.SDL_arraysize(points));
 }
+
+pub fn drawTriangle(renderer: *c.SDL_Renderer) !void {
+    var vertices: [4]c.SDL_Vertex = undefined;
+    const size = 200.0 + (200.0 * 1);
+    const WINDOW_WIDTH = 400;
+    const WINDOW_HEIGHT = 300;
+
+    //c.SDL_zeroa(vertices);
+    vertices[0].position.x = (WINDOW_WIDTH) / 2;
+    vertices[0].position.y = ((WINDOW_HEIGHT) - size) / 2;
+    vertices[0].color.r = 1;
+    vertices[0].color.a = 1;
+    vertices[1].position.x = ((WINDOW_WIDTH) + size) / 2;
+    vertices[1].position.y = ((WINDOW_HEIGHT) + size) / 2;
+    vertices[1].color.g = 1;
+    vertices[1].color.a = 1;
+    vertices[2].position.x = ((WINDOW_WIDTH) - size) / 2;
+    vertices[2].position.y = ((WINDOW_HEIGHT) + size) / 2;
+    vertices[2].color.b = 1;
+    vertices[2].color.a = 1;
+
+    _ = c.SDL_RenderGeometry(renderer, null, &vertices, 3, null, 0);
+}

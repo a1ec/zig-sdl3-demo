@@ -1,10 +1,17 @@
 AC Modifications
 WIP
- - runtime graph points mem allocation for curve routines 
-    - Arena alloc
- - translucent pause overlay
+  - oscilloscope
+    - take audio code
+    - generate sine wave
+    - play sound
+    - draw audio buffer realtime
+    - change freq. with +-
+    - add notes
+    - show harmonic content
 
 Done
+ - runtime graph points mem allocation for curve routines 
+    - FBA alloc
  - separate game draw buffer
  - separate files
  - separate SDL routines

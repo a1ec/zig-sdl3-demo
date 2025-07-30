@@ -78,3 +78,46 @@ pub fn generateCharacterBytes() [256]u8 {
     buffer[255] = 0;
     return buffer;
 }
+
+pub fn drawTriangle(renderer: *c.SDL_Renderer, pos_x: f32, pos_y: f32, size_x: f32, size_y: f32) !void {
+    var vertices: [3]c.SDL_Vertex = undefined;
+    vertices[0].position.x = -size_x / 2 + pos_x;
+    vertices[0].position.y = -size_y / 2 + pos_y;
+    vertices[0].color.r = 1;
+    vertices[0].color.g = 1;
+    vertices[0].color.a = 1;
+    vertices[1].position.x = size_x / 2 + pos_x;
+    vertices[1].position.y = -size_y / 2 + pos_y;
+    vertices[1].color.r = 1;
+    vertices[1].color.g = 1;
+    vertices[1].color.a = 1;
+    vertices[2].position.x = pos_x;
+    vertices[2].position.y = size_y / 2 + pos_y;
+    vertices[2].color.g = 1;
+    vertices[2].color.r = 1;
+    vertices[2].color.a = 1;
+    _ = c.SDL_RenderGeometry(renderer, null, &vertices, 3, null, 0);
+}
+
+pub fn drawTriangleTest(renderer: *c.SDL_Renderer) !void {
+    var vertices: [4]c.SDL_Vertex = undefined;
+    const size = 200.0 + (200.0 * 1);
+    const WINDOW_WIDTH = 400;
+    const WINDOW_HEIGHT = 300;
+
+    //c.SDL_zeroa(vertices);
+    vertices[0].position.x = (WINDOW_WIDTH) / 2;
+    vertices[0].position.y = ((WINDOW_HEIGHT) - size) / 2;
+    vertices[0].color.r = 1;
+    vertices[0].color.a = 1;
+    vertices[1].position.x = ((WINDOW_WIDTH) + size) / 2;
+    vertices[1].position.y = ((WINDOW_HEIGHT) + size) / 2;
+    vertices[1].color.g = 1;
+    vertices[1].color.a = 1;
+    vertices[2].position.x = ((WINDOW_WIDTH) - size) / 2;
+    vertices[2].position.y = ((WINDOW_HEIGHT) + size) / 2;
+    vertices[2].color.b = 1;
+    vertices[2].color.a = 1;
+
+    _ = c.SDL_RenderGeometry(renderer, null, &vertices, 3, null, 0);
+}

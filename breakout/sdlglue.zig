@@ -10,6 +10,44 @@ var timekeeper: Timekeeper = undefined;
 const App = @import("app.zig").App;
 
 //BLOCK Main Functions
+
+fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
+    _ = argv;
+
+    //ptr to ptr because appstate is expected to be a place holder for a newly allocated block of memory
+    //app_ptr: *App = null;
+    //app_pptr = &app_ptr;
+
+    const app_pptr: **App = @ptrCast(appstate);
+    timekeeper = .{ .tocks_per_s = c.SDL_GetPerformanceFrequency() };
+
+    try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
+    try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
+    errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
+
+    const app_ptr = app_pptr.*;
+
+    // try errify(c.SDL_CreateWindowAndRenderer("demo1", app_ptr.window_width, app_ptr.window_height, 0, @alignCast(
+    //     @ptrCast(&app_ptr.window),
+    // ), @alignCast(@ptrCast(
+    //     &app_ptr.renderer,
+    // ))));
+
+    try errify(c.SDL_CreateWindowAndRenderer("demo1", app_pptr.*.window_width, app_pptr.*.window_height, 0, @alignCast(
+        @ptrCast(&app_pptr.*.window),
+    ), @alignCast(@ptrCast(
+        &app_pptr.*.renderer,
+    ))));
+    app_pptr.*.pixel_buffer = c.SDL_CreateTexture(app_pptr.*.renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, @as(c_int, @intFromFloat(app_pptr.*.pixel_buffer_width)), @as(c_int, @intFromFloat(app_pptr.*.pixel_buffer_height)));
+    _ = c.SDL_SetTextureScaleMode(app_pptr.*.pixel_buffer, c.SDL_SCALEMODE_NEAREST);
+    //try c.SDL_SetRenderTarget(app_pptr.*.renderer, app_pptr.*.pixel_buffer);
+    try errify(c.SDL_SetRenderScale(app_pptr.*.renderer, app_pptr.*.pixel_buffer_scale, app_pptr.*.pixel_buffer_scale));
+    try errify(c.SDL_SetRenderDrawColor(app_pptr.*.renderer, 0x00, 0x00, 0x00, 0xff));
+    try errify(c.SDL_RenderClear(app_pptr.*.renderer));
+    try errify(c.SDL_SetRenderDrawBlendMode(app_pptr.*.renderer, c.SDL_BLENDMODE_BLEND));
+    return c.SDL_APP_CONTINUE;
+}
+
 fn sdlAppIterate(appstate: ?*anyopaque) !c.SDL_AppResult {
     while (timekeeper.consume()) {}
 
@@ -25,26 +63,6 @@ fn sdlAppEvent(appstate: ?*anyopaque, event: *c.SDL_Event) !c.SDL_AppResult {
 
     return appPtr.handleStateEvent(appPtr, event);
     //return c.SDL_APP_CONTINUE;
-}
-
-fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
-    _ = argv;
-
-    const app: **App = @ptrCast(appstate);
-    timekeeper = .{ .tocks_per_s = c.SDL_GetPerformanceFrequency() };
-
-    errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
-    try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
-    try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
-    try errify(c.SDL_CreateWindowAndRenderer("demo1", app.*.window_width, app.*.window_height, 0, @alignCast(@ptrCast(&app.*.window)), @alignCast(@ptrCast(&app.*.renderer))));
-    app.*.pixel_buffer = c.SDL_CreateTexture(app.*.renderer, c.SDL_PIXELFORMAT_RGBA8888, c.SDL_TEXTUREACCESS_TARGET, @as(c_int, @intFromFloat(app.*.pixel_buffer_width)), @as(c_int, @intFromFloat(app.*.pixel_buffer_height)));
-    _ = c.SDL_SetTextureScaleMode(app.*.pixel_buffer, c.SDL_SCALEMODE_NEAREST);
-    //try c.SDL_SetRenderTarget(app.*.renderer, app.*.pixel_buffer);
-    try errify(c.SDL_SetRenderScale(app.*.renderer, app.*.pixel_buffer_scale, app.*.pixel_buffer_scale));
-    try errify(c.SDL_SetRenderDrawColor(app.*.renderer, 0x00, 0x00, 0x00, 0xff));
-    try errify(c.SDL_RenderClear(app.*.renderer));
-    try errify(c.SDL_SetRenderDrawBlendMode(app.*.renderer, c.SDL_BLENDMODE_BLEND));
-    return c.SDL_APP_CONTINUE;
 }
 
 fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
@@ -67,9 +85,6 @@ fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
 //BLOCK Main Function
 
 //BLOCK Callbacks
-pub fn sdlMainC(argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c_int {
-    return c.SDL_EnterAppMainCallbacks(argc, @ptrCast(argv), sdlAppInitC, sdlAppIterateC, sdlAppEventC, sdlAppQuitC);
-}
 
 fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c.SDL_AppResult {
     // 1. Unwrap the pointer‐to‐slot
@@ -95,6 +110,10 @@ fn sdlAppInitC(appstate: ?*?*anyopaque, argc: c_int, argv: ?[*:null]?[*:0]u8) ca
     // 3. Store it (cast to anyopaque to satisfy the C API)
     stateSlot.* = @ptrCast(appPtr);
     return sdlAppInit(appstate.?, @ptrCast(argv.?[0..@intCast(argc)])) catch |err| app_err.store(err);
+}
+
+pub fn sdlMainC(argc: c_int, argv: ?[*:null]?[*:0]u8) callconv(.c) c_int {
+    return c.SDL_EnterAppMainCallbacks(argc, @ptrCast(argv), sdlAppInitC, sdlAppIterateC, sdlAppEventC, sdlAppQuitC);
 }
 
 fn sdlAppIterateC(appstate: ?*anyopaque) callconv(.c) c.SDL_AppResult {
