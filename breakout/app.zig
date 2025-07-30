@@ -38,9 +38,9 @@ pub const App = struct {
 
     pub fn init(self: *App) !void {
         // 1. Define your constants.
-        const pixel_buffer_scale: f32 = 3.0;
-        const pixel_buffer_width: f32 = 400;
-        const pixel_buffer_height: f32 = 300;
+        const pixel_buffer_scale: f32 = 2.0;
+        const pixel_buffer_width: f32 = 640;
+        const pixel_buffer_height: f32 = 480;
 
         // 2. Initialize fields one by one. This is the robust way.
         self.state = AppState.Menu;

@@ -120,7 +120,7 @@ pub const Game = struct {
         const mouse_pos_x_trunc = @trunc(self.mouse_pos.x);
         const mouse_pos_y_trunc = @trunc(self.mouse_pos.y);
         // Nice blue at 0,0,0xff/2
-        try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xff / 2, 0xff));
+        try errify(c.SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xff));
         try errify(c.SDL_RenderClear(renderer));
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_NONE));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x00, 0xff * 3 / 4));
