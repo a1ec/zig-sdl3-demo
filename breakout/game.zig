@@ -23,6 +23,9 @@ pub const Game = struct {
     is_grid_shown: bool = true,
     is_mouse_pos_shown: bool = true,
     frames_drawn: u32 = 0,
+    freq: f32 = 400,
+    samples: [512]f32,
+    current_sine_sample: u32 = 0,
     mouse_pos: Point,
     buffer: [memory_buffer_size]u8 = undefined,
     fba: std.heap.FixedBufferAllocator = undefined,
@@ -34,6 +37,9 @@ pub const Game = struct {
         self.is_grid_shown = true;
         self.is_mouse_pos_shown = true;
         self.frames_drawn = 0;
+        self.freq = 400;
+        self.samples = undefined;
+        self.current_sine_sample = 0;
         self.fba = std.heap.FixedBufferAllocator.init(&self.buffer);
         self.allocator = self.fba.allocator();
         self.mouse_pos = .{ .x = 0, .y = 0 };
@@ -75,6 +81,13 @@ pub const Game = struct {
                     c.SDLK_M => {
                         self.toggleMousePosition();
                     },
+                    c.SDLK_PERIOD => {
+                        self.freq += 1;
+                    },
+                    c.SDLK_COMMA => {
+                        self.freq -= 1;
+                    },
+
                     else => {},
                 }
             },
@@ -114,6 +127,19 @@ pub const Game = struct {
         Gfx.drawCurve(self.app.renderer, graph_points_slice);
     }
 
+    pub fn playSineWave(self: *Self) !void {
+        const num_samples_minimum = 8000 * @sizeOf(f32) / 2;
+        if (c.SDL_GetAudioStreamQueued(self.app.audio_stream) < num_samples_minimum) {
+            for (&self.samples) |*sample| {
+                const phase: f32 = @as(f32, @floatFromInt(self.current_sine_sample)) * self.freq / 8000.0;
+                sample.* = c.SDL_sinf(phase * 2 * c.SDL_PI_F) / 4;
+                self.current_sine_sample += 1;
+            }
+            self.current_sine_sample %= 8000;
+            try errify(c.SDL_PutAudioStreamData(self.app.audio_stream, &self.samples, self.samples.len * @sizeOf(f32)));
+        }
+    }
+
     pub fn drawNoPauseCheck(self: *Self, renderer: *c.SDL_Renderer) !void {
         // mouse co-ordinates
         self.mouse_pos = Input.getMousePosition(self.app.pixel_buffer_scale);
@@ -140,6 +166,8 @@ pub const Game = struct {
 
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 8));
+        try self.playSineWave();
+
         if (self.is_grid_shown) {
             Gfx.drawGrid(renderer, -1, -1, self.app.pixel_buffer_width, self.app.pixel_buffer_height, App.text_width, App.text_height);
         }
