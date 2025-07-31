@@ -1,4 +1,12 @@
 AC Modifications
+
+TODO
+ - properly handle errors
+   - clean up failable function returns - currently discarding values in many SDL functions
+   - doesn't errify handle bool types?
+    
+ - measure - how long is an SDL iteration
+   - what is the duty cycle?
 WIP
   - oscilloscope
     - take audio code

@@ -61,10 +61,27 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
     timekeeper = .{ .tocks_per_s = c.SDL_GetPerformanceFrequency() };
 
     try errify(c.SDL_SetAppMetadata("Example", "1.0", "example.com"));
-    try errify(c.SDL_Init(c.SDL_INIT_VIDEO));
+    try errify(c.SDL_Init(c.SDL_INIT_VIDEO | c.SDL_INIT_AUDIO));
     errify(c.SDL_SetHint(c.SDL_HINT_RENDER_VSYNC, "1")) catch {};
 
     const app_ptr = app_pptr.*;
+
+    const spec = c.SDL_AudioSpec{
+        .channels = 1,
+        .format = c.SDL_AUDIO_F32,
+        .freq = 8000,
+    };
+
+    app_ptr.audio_stream = try errify(c.SDL_OpenAudioDeviceStream(
+        c.SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        &spec,
+        null,
+        null,
+    ));
+    if (!c.SDL_ResumeAudioStreamDevice(app_ptr.audio_stream)) {
+        c.SDL_Log("Couldn't create audio stream: %s", c.SDL_GetError());
+        return c.SDL_APP_FAILURE;
+    }
 
     try errify(c.SDL_CreateWindowAndRenderer(
         "demo1",

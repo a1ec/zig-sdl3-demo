@@ -26,6 +26,7 @@ pub const App = struct {
     state: AppState,
     renderer: *c.SDL_Renderer,
     window: *c.SDL_Window,
+    audio_stream: *c.SDL_AudioStream,
     pixel_buffer: *c.SDL_Texture,
     pixel_buffer_scale: f32,
     pixel_buffer_width: f32,
@@ -49,6 +50,7 @@ pub const App = struct {
         // They start as undefined, which is fine before they are set.
         self.renderer = undefined;
         self.window = undefined;
+        self.audio_stream = undefined;
         self.pixel_buffer = undefined;
 
         self.pixel_buffer_scale = pixel_buffer_scale;
@@ -123,6 +125,11 @@ const sdlMainC = sdlGlue.sdlMainC;
 pub fn main() !u8 {
     app_err.reset();
     var empty_argv: [0:null]?[*:0]u8 = .{};
-    const status: u8 = @truncate(@as(c_uint, @bitCast(c.SDL_RunApp(empty_argv.len, @ptrCast(&empty_argv), sdlMainC, null))));
+    const status: u8 = @truncate(@as(c_uint, @bitCast(c.SDL_RunApp(
+        empty_argv.len,
+        @ptrCast(&empty_argv),
+        sdlMainC,
+        null,
+    ))));
     return app_err.load() orelse status;
 }
