@@ -78,10 +78,7 @@ fn sdlAppInit(appstate: ?*?*anyopaque, argv: [][*:0]u8) !c.SDL_AppResult {
         null,
         null,
     ));
-    if (!c.SDL_ResumeAudioStreamDevice(app_ptr.audio_stream)) {
-        c.SDL_Log("Couldn't create audio stream: %s", c.SDL_GetError());
-        return c.SDL_APP_FAILURE;
-    }
+    try errify(c.SDL_ResumeAudioStreamDevice(app_ptr.audio_stream));
 
     try errify(c.SDL_CreateWindowAndRenderer(
         "demo1",

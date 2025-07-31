@@ -5,19 +5,20 @@ TODO
    - clean up failable function returns - currently discarding values in many SDL functions
    - doesn't errify handle bool types?
     
- - measure - how long is an SDL iteration
+ - measure - how long is an SDL iteration, how many fps?
    - what is the duty cycle?
 WIP
   - oscilloscope
+    - add notes
+    - show harmonic content
+
+Done
     - take audio code
     - generate sine wave
     - play sound
     - draw audio buffer realtime
     - change freq. with +-
-    - add notes
-    - show harmonic content
 
-Done
  - runtime graph points mem allocation for curve routines 
     - FBA alloc
  - separate game draw buffer
