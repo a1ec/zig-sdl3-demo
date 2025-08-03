@@ -1,6 +1,8 @@
 const std = @import("std");
 const c = @import("cimports.zig").c;
 
+const TWO_PI = std.math.pi * 2;
+
 pub const SineWaveContext = struct {
     amplitude: f32,
     frequency: f32,
@@ -10,6 +12,44 @@ pub const SineWaveContext = struct {
     pub fn calc(context_ptr: *const anyopaque, x: f32) f32 {
         const self: *const SineWaveContext = @ptrCast(@alignCast(context_ptr));
         return self.y_offset + (self.amplitude * std.math.sin(x * self.frequency));
+    }
+};
+
+pub const SineOscillator = struct {
+    const Self = @This();
+    amplitude: f32 = 1,
+    frequency: f32,
+    phase: f32 = 0,
+    sample_rate: f32,
+
+    pub fn init(amplitude: f32, phase: f32, frequency: f32, sample_rate: f32) Self {
+        return Self{
+            .amplitude = amplitude,
+            .frequency = frequency,
+            .phase = phase,
+            .sample_rate = sample_rate,
+        };
+    }
+
+    pub fn nextSample(self: *Self) f32 {
+        const output = c.SDL_sinf(self.phase) * self.amplitude;
+        // prepare the next phase value
+        const phase_increment = self.frequency * TWO_PI / self.sample_rate;
+        self.phase += phase_increment;
+        if (self.phase >= TWO_PI) self.phase = @rem(self.phase, TWO_PI);
+        return output;
+    }
+
+    pub fn setAmplitude(self: *Self, new_amplitude: f32) void {
+        self.amplitude = new_amplitude;
+    }
+
+    pub fn setFrequency(self: *Self, new_frequency: f32) void {
+        self.frequency = new_frequency;
+    }
+
+    pub fn setPhase(self: *Self, new_phase: f32) void {
+        self.phase = new_phase;
     }
 };
 

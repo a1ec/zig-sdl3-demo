@@ -24,12 +24,13 @@ pub const Game = struct {
     is_mouse_pos_shown: bool = true,
     frames_drawn: u32 = 0,
     freq: f32 = 400,
-    samples: [512]f32,
+    samples: [320]f32,
     current_sine_sample: u32 = 0,
     mouse_pos: Point,
     buffer: [memory_buffer_size]u8 = undefined,
     fba: std.heap.FixedBufferAllocator = undefined,
     allocator: std.mem.Allocator,
+    sine_osc: Curve.SineOscillator,
 
     pub fn init(self: *Self, app: *App) !void {
         self.state = .Running;
@@ -43,6 +44,12 @@ pub const Game = struct {
         self.fba = std.heap.FixedBufferAllocator.init(&self.buffer);
         self.allocator = self.fba.allocator();
         self.mouse_pos = .{ .x = 0, .y = 0 };
+        self.sine_osc = Curve.SineOscillator.init(
+            0.5,
+            0,
+            100,
+            8000,
+        );
     }
 
     pub fn deinit(self: *Self) void {
@@ -81,13 +88,24 @@ pub const Game = struct {
                     c.SDLK_M => {
                         self.toggleMousePosition();
                     },
+                    c.SDLK_I => {
+                        self.sine_osc.setPhase(self.sine_osc.phase - (std.math.pi / 500.0));
+                    },
+                    c.SDLK_O => {
+                        self.sine_osc.setPhase(self.sine_osc.phase + (std.math.pi / 500.0));
+                    },
                     c.SDLK_PERIOD => {
-                        self.freq += 1;
+                        self.sine_osc.setFrequency(self.sine_osc.frequency + 10);
                     },
                     c.SDLK_COMMA => {
-                        self.freq -= 1;
+                        self.sine_osc.setFrequency(self.sine_osc.frequency - 10);
                     },
-
+                    c.SDLK_L => {
+                        self.sine_osc.setAmplitude(self.sine_osc.amplitude + 0.05);
+                    },
+                    c.SDLK_K => {
+                        self.sine_osc.setAmplitude(self.sine_osc.amplitude - 0.05);
+                    },
                     else => {},
                 }
             },
@@ -97,9 +115,7 @@ pub const Game = struct {
         return c.SDL_APP_CONTINUE;
     }
 
-    pub fn drawCurves(self: *Self) !void {
-        const pixel_buffer_width_usize = @as(usize, @intFromFloat(self.app.pixel_buffer_width));
-        // draw a parabolic curve
+    pub fn drawParabola(self: *Self) !void { // draw a parabolic curve
         const my_parabola_config = Curve.ParabolaContext{
             .a = self.mouse_pos.y / 500,
             .b = self.mouse_pos.x / 30,
@@ -111,6 +127,10 @@ pub const Game = struct {
         );
 
         Gfx.drawCurve(self.app.renderer, &graph_points);
+    }
+
+    pub fn drawSineWave(self: *Self) !void {
+        const pixel_buffer_width_usize = @as(usize, @intFromFloat(self.app.pixel_buffer_width));
 
         const my_sine_config = Curve.SineWaveContext{
             .amplitude = 25.0 * self.mouse_pos.y / 50,
@@ -127,16 +147,37 @@ pub const Game = struct {
         Gfx.drawCurve(self.app.renderer, graph_points_slice);
     }
 
+    pub fn drawCurves(self: *Self) !void {
+        try self.drawSineWave();
+        try self.drawAudioBufferF32(&self.samples);
+    }
+
     pub fn playSineWave(self: *Self) !void {
-        const num_samples_minimum = 8000 * @sizeOf(f32) / 2;
+        const num_samples_minimum = 320 * @sizeOf(f32);
         if (c.SDL_GetAudioStreamQueued(self.app.audio_stream) < num_samples_minimum) {
             for (&self.samples) |*sample| {
-                const phase: f32 = @as(f32, @floatFromInt(self.current_sine_sample)) * self.freq / 8000.0;
-                sample.* = c.SDL_sinf(phase * 2 * c.SDL_PI_F) / 4;
-                self.current_sine_sample += 1;
+                sample.* = self.sine_osc.nextSample();
             }
-            self.current_sine_sample %= 8000;
-            try errify(c.SDL_PutAudioStreamData(self.app.audio_stream, &self.samples, self.samples.len * @sizeOf(f32)));
+            const bytes_to_put = self.samples.len * @sizeOf(f32);
+            try errify(c.SDL_PutAudioStreamData(self.app.audio_stream, &self.samples, bytes_to_put));
+        }
+    }
+
+    pub fn drawAudioBufferF32(self: *Self, samples: []f32) !void {
+        //const pixel_buffer_width_usize = @as(usize, @intFromFloat(self.app.pixel_buffer_width));
+        var x1: f32 = 0;
+        var idx: usize = 0;
+        const x_pixels_per_sample = self.app.pixel_buffer_width / @as(f32, @floatFromInt(samples.len));
+        const y_offset = self.app.pixel_buffer_height / 2;
+
+        while (idx + 1 < samples.len) {
+            var y1 = y_offset * (1 - samples[idx]);
+            idx += 1;
+            const x2 = x1 + x_pixels_per_sample;
+            const y2 = y_offset * (1 - samples[idx]);
+            _ = c.SDL_RenderLine(self.app.renderer, x1, y1, x2, y2);
+            x1 = x2;
+            y1 = y2;
         }
     }
 
