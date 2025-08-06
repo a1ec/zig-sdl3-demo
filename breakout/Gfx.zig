@@ -38,7 +38,7 @@ pub fn drawGrid(renderer: *c.SDL_Renderer, x: f32, y: f32, w: f32, h: f32, pixel
 }
 
 pub fn drawFmtText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []const u8, args: anytype) !void {
-    var textBuffer: [257]u8 = undefined;
+    var textBuffer: [512]u8 = undefined;
     // Use subslice to ensure buffer has at least 1 byte of free space for the null.
     const bufferShort = textBuffer[0 .. textBuffer.len - 1];
     const textSlice = try std.fmt.bufPrint(bufferShort, fmt, args);
@@ -51,7 +51,7 @@ pub fn drawFmtText(renderer: *c.SDL_Renderer, x: f32, y: f32, comptime fmt: []co
 pub fn drawRawBytes(renderer: *c.SDL_Renderer, x: f32, y: f32, bytes: []const u8) !void {
     // We need a null-terminated buffer to pass to C.
     // Let's allocate one on the stack that's big enough.
-    var c_buffer: [257]u8 = undefined; // Max line length + 1 for null
+    var c_buffer: [bytes.len]u8 = undefined; // Max line length + 1 for null
 
     // Clamp the slice to our buffer size to prevent overflow.
     const to_copy = bytes[0..@min(bytes.len, c_buffer.len - 1)];

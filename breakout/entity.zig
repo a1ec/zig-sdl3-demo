@@ -7,6 +7,8 @@ const errify = @import("sdlglue.zig").errify;
 //
 
 pub const PlayerShip = struct {
+    const Self = @This();
+
     x: f32 = 0,
     y: f32 = 0,
     rotation: f64 = 0,
@@ -17,9 +19,9 @@ pub const PlayerShip = struct {
         .{ .position = .{ .x = 4, .y = 12 }, .color = .{ .r = 255, .g = 0, .b = 0, .a = 255 }, .tex_coord = .{ .x = 0, .y = 0 } },
     };
 
-    pub fn init(renderer: *c.SDL_Renderer) !PlayerShip {
+    pub fn init(renderer: *c.SDL_Renderer) !Self {
         const aTexture = try bakeGeometryTexture(renderer);
-        return PlayerShip{
+        return Self{
             .texture = aTexture,
         };
     }

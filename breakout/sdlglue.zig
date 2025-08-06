@@ -134,7 +134,7 @@ fn sdlAppQuit(appState: ?*anyopaque, result: anyerror!c.SDL_AppResult) void {
     app_ptr.game.deinit();
     c.SDL_DestroyRenderer(app_ptr.renderer);
     c.SDL_DestroyWindow(app_ptr.window);
-    // run your cleanup
+    c.SDL_DestroyAudioStream(app_ptr.audio_stream);
     // free the heap allocation
     std.heap.page_allocator.destroy(app_ptr);
 }

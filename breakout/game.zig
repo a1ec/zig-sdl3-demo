@@ -45,9 +45,9 @@ pub const Game = struct {
         self.allocator = self.fba.allocator();
         self.mouse_pos = .{ .x = 0, .y = 0 };
         self.sine_osc = Curve.SineOscillator.init(
-            0.5,
+            1.0 / 8.0,
             0,
-            100,
+            75,
             8000,
         );
     }
@@ -95,10 +95,10 @@ pub const Game = struct {
                         self.sine_osc.setPhase(self.sine_osc.phase + (std.math.pi / 500.0));
                     },
                     c.SDLK_PERIOD => {
-                        self.sine_osc.setFrequency(self.sine_osc.frequency + 10);
+                        self.sine_osc.setFrequency(self.sine_osc.frequency + 1);
                     },
                     c.SDLK_COMMA => {
-                        self.sine_osc.setFrequency(self.sine_osc.frequency - 10);
+                        self.sine_osc.setFrequency(self.sine_osc.frequency - 1);
                     },
                     c.SDLK_L => {
                         self.sine_osc.setAmplitude(self.sine_osc.amplitude + 0.05);
@@ -148,7 +148,7 @@ pub const Game = struct {
     }
 
     pub fn drawCurves(self: *Self) !void {
-        try self.drawSineWave();
+        //try self.drawSineWave();
         try self.drawAudioBufferF32(&self.samples);
     }
 
@@ -203,7 +203,7 @@ pub const Game = struct {
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff * 1 / 2, 0xff * 1 / 2, 0xff, 0xff));
         try self.drawCurves();
 
-        try entity.drawTriangle(renderer, mouse_pos_x_trunc, mouse_pos_y_trunc, -8, -19);
+        try entity.drawTriangle(renderer, mouse_pos_x_trunc, mouse_pos_y_trunc, 6, 9);
 
         try errify(c.SDL_SetRenderDrawBlendMode(renderer, c.SDL_BLENDMODE_BLEND));
         try errify(c.SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff / 8));

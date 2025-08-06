@@ -1,5 +1,6 @@
 const std = @import("std");
 const c = @import("cimports.zig").c;
+const print = std.debug.print;
 
 const TWO_PI = std.math.pi * 2;
 
@@ -46,6 +47,7 @@ pub const SineOscillator = struct {
 
     pub fn setFrequency(self: *Self, new_frequency: f32) void {
         self.frequency = new_frequency;
+        print("New freq: {any}\n", .{new_frequency});
     }
 
     pub fn setPhase(self: *Self, new_phase: f32) void {

@@ -1,9 +1,13 @@
 /// Facilitates updating the game logic at a fixed rate.
 /// Inspired <https://github.com/TylerGlaiel/FrameTimingControl> and the linked article.
 pub const Timekeeper = struct {
+    // fps - is this enforced?
     pub const updates_per_s = 60;
     pub const max_accumulated_updates = 8;
+    // are the fps relevant if they are higher?
     pub const snap_frame_rates = .{ updates_per_s, 30, 120, 144 };
+
+    // What is a tick? A tock sounds like interval
     pub const ticks_per_tock = 720; // Least common multiple of 'snap_frame_rates'
     pub const snap_tolerance_us = 200;
     pub const us_per_s = 1_000_000;
